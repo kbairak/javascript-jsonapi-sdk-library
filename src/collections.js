@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 export class Collection {
   /*  const children = api.Child.list();
     * await children.fetch();
@@ -56,5 +58,43 @@ export class Collection {
     return this.extra(params);
   }
 
-  // TODO: page, include, sort, fields
+  page(arg) {
+    let params = {};
+    if (_.isObject(arg)) {
+      for (const key in arg) {
+        const value = arg[key];
+        params[`page[${key}]`] = value;
+      }
+    }
+    else {
+      params.page = arg;
+    }
+    return this.extra(params);
+  }
+
+  include(...args) {
+    return this.extra({ include: args.join(',') });
+  }
+
+  sort(...args) {
+    return this.extra({ sort: args.join(',') });
+  }
+
+  fields(...args) {
+    return this.extra({ fields: args.join(',') });
+  }
+
+  async get(filters = {}) {
+    const qs = this.filter(filters);
+    await qs.fetch();
+    if (qs.data.length == 0) {
+      throw new Error('Does not exist');
+    }
+    else if (qs.data.length > 1) {
+      throw new Error(`Multiple objects returned (${qs.data.length})`);
+    }
+    else {
+      return qs.data[0];
+    }
+  }
 }

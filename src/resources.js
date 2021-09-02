@@ -2,8 +2,8 @@ import _ from 'lodash';
 
 import { Collection } from './collections';
 import {
-  hasData, hasLinks, isFetched, isList, isNull, isObject, isResource,
-  isResourceIdentifier,
+  hasData, hasLinks, isSingularFetched, isList, isNull, isObject,
+  isPluralFetched, isResource, isResourceIdentifier,
 } from './utils';
 
 export class Resource {
@@ -83,7 +83,8 @@ export class Resource {
       const value = props[key];
       if (
         isResource(value) || isResourceIdentifier(value) ||
-        (hasData(value) && isResourceIdentifier(value.data))
+        (hasData(value) && isResourceIdentifier(value.data)) ||
+        hasLinks(value)
       ) {
         relationships[key] = value;
       }
@@ -220,12 +221,17 @@ export class Resource {
     this._overwrite(response.data.data);
   }
 
-  static async get(id) {
+  static async get(arg = null) {
     // Get a resource object by its ID
 
-    const instance = new this({ id });
-    await instance.reload();
-    return instance;
+    if (arg === null || _.isObject(arg)) {
+      return this.list().get(arg);
+    }
+    else {
+      const instance = new this({ arg });
+      await instance.reload();
+      return instance;
+    }
   }
 
   async fetch(relationshipName, force = false) {
@@ -248,13 +254,25 @@ export class Resource {
       return null;
     }
     const related = this.related[relationshipName];
-    const isSingularFetched = isFetched(related);
     // TODO: isPluralFetched
-    if (isSingularFetched && ! force) {
+    if ((isSingularFetched(related) || isPluralFetched(related)) && ! force) {
       return related;
     }
-    await related.reload();
-    return related;
+    if (_.isObject(relationship.data)) {
+      await related.reload();
+      return related;
+    }
+    else {
+      const url = (relationship.links || {}).related;
+      if (! url) {
+        throw new Error(`Cannot fetch ${relationshipName}, no 'related' link`);
+      }
+      this.related[relationshipName] = new Collection(
+        this.constructor.API,
+        url,
+      );
+      return this.related[relationshipName];
+    }
   }
 
   async save() {
@@ -486,7 +504,7 @@ export class Resource {
   }
 }
 
-for (const listMethod of ['filter']) {
+for (const listMethod of ['filter', 'page', 'include', 'sort', 'fields']) {
   Resource[listMethod] = function(...args) {
     return this.list()[listMethod](...args);
   };
