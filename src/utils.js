@@ -1,0 +1,36 @@
+import _ from 'lodash';
+import { Resource } from './resources';
+
+export function hasData(value) {
+  return _.isObject(value) && 'data' in value;
+}
+
+export function hasLinks(value) {
+  return _.isObject(value) && 'links' in value;
+}
+
+export function isFetched(value) {
+  return (
+    ! isNull(value) &&
+    (_.size(value.attributes) > 0 || _.size(value.relationships) > 0)
+  );
+}
+export function isList(value) {
+  return _.isArray(value);
+}
+
+export function isNull(value) {
+  return ! value;
+}
+
+export function isObject(value) {
+  return _.isObject(value);
+}
+
+export function isResource(value) {
+  return value instanceof Resource;
+}
+
+export function isResourceIdentifier(value) {
+  return _.isObject(value) && 'type' in value && 'id' in value;
+}

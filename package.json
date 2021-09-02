@@ -1,0 +1,52 @@
+{
+  "name": "javascript-jsonapi-sdk-library",
+  "version": "0.0.1",
+  "author": "Konstantinos Bairaktaris <ikijob@gmail.com> (https://www.kbairak.net)",
+  "description": "{json:api} SDK library",
+  "main": "dist/jsonapi.js",
+  "browser": "bundle/jsonapi.js",
+  "node": "src/index.js",
+  "scripts": {
+    "eslint": "eslint --fix src",
+    "eslint_nofix": "eslint src",
+    "test": "jest",
+    "watchtest": "jest --watchAll",
+    "nodebuild": "babel src -d dist",
+    "browserbuild": "webpack",
+    "build": "npm run nodebuild && npm run browserbuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbairak/javascript-jsonapi-sdk-library"
+  },
+  "keywords": [
+    "jsonapi",
+    "sdk",
+    "api",
+    "client"
+  ],
+  "author": "Konstantinos Bairaktaris",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/kbairak/javascript-jsonapi-sdk-library/issues"
+  },
+  "homepage": "https://github.com/kbairak/javascript-jsonapi-sdk-library",
+  "devDependencies": {
+    "@babel/cli": "^7.14.8",
+    "@babel/core": "^7.15.0",
+    "@babel/node": "^7.14.9",
+    "@babel/preset-env": "^7.15.0",
+    "babel-eslint": "^10.1.0",
+    "babel-jest": "^27.0.6",
+    "babel-loader": "^8.2.2",
+    "eslint": "^7.32.0",
+    "jest": "^27.0.6",
+    "webpack": "^5.51.1",
+    "webpack-cli": "^4.8.0"
+  },
+  "dependencies": {
+    "@babel/polyfill": "^7.12.1",
+    "axios": "^0.21.1",
+    "lodash": "^4.17.21"
+  }
+}
