@@ -1,5 +1,7 @@
 import _ from 'lodash';
 
+import { Resource } from './resources';
+
 export class Collection {
   /*  const children = api.Child.list();
     * await children.fetch();
@@ -46,12 +48,15 @@ export class Collection {
   filter(filters) {
     const params = {};
     for (const key in filters) {
-      const value = filters[key];
+      let value = filters[key];
       const parts = key.split('__');
       const filterKey = [`filter[${parts[0]}]`];
       for (let i = 1; i < parts.length; i++) {
         const part = parts[i];
         filterKey.push(`[${part}]`);
+      }
+      if (value instanceof Resource) {
+        value = value.id;
       }
       params[filterKey.join('')] = value;
     }

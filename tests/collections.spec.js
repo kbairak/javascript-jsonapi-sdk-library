@@ -125,6 +125,9 @@ test('filter', async () => {
 
   items = api.Item.filter({ a: 'b', c__d: 'e' });
   await testParams(items, { 'filter[a]': 'b', 'filter[c][d]': 'e' });
+
+  items = api.Item.filter({ parent: new api.Parent({ id: '1' }) });
+  await testParams(items, { 'filter[parent]': '1' });
 });
 
 test('page single argument', async () => {
