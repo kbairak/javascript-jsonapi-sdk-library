@@ -1,5 +1,11 @@
 # {json:api} SDK library for Javascript
 
+This is a library that allows you to create SDKs for APIs that conform to the
+[{json:api}](https://jsonapi.org/) specification. The design of this library,
+as well as the structure of this README file, follow the principles of
+[an equivalent library that was written for Python](https://github.com/transifex/transifex-python/tree/devel/transifex/api)
+as much as possible.
+
 ## Setting up
 
 ```sh
@@ -37,6 +43,21 @@ class Child extends Resource {
 }
 FamilyApi.register(Child);
 ```
+
+> Note: The static attribute `name` is used by us in order to expose a version
+> of the class that is _bound_ to the API connection type as an attribute of
+> the API connection _instances_. Typically, javascript classes automatically
+> have a `.name` attribute that is set as the name we used for the class. So:
+>
+> ```javascript
+> class Something {}
+> console.log(Something.name);
+> // <<< 'Something'
+> ```
+>
+> However, when the code is minified, for example when you bundle it using
+> webpack in production mode, the class names get converted to a single letter.
+> This is why it is safer to add a static 'name' attribute manually.
 
 Users of your SDK can then instantiate your *API connection type*, providing
 authentication credentials and/or overriding the host, in case you want to test
@@ -233,7 +254,7 @@ relationship can either be:
      id: '...',
      attributes: { ... },
      relationships: {
-         parent: null,  # <---
+         parent: null,  // <---
          ...,
      },
      links: { ... } }
@@ -592,7 +613,7 @@ can specify which fields will be sent with `save`'s argument:
 
 ```javascript
 const child = await familyApi.Child.get('1');
-child.get('name') += ' the Great!';
+child.set('name', child.get('name') + ' the Great!');
 await child.save(['name']);
 ```
 
@@ -604,7 +625,7 @@ actual saving:
 await child.save({ name: 'Hercules' });
 // is equivalent to
 child.set('name', 'Hercules');
-await child.save('name');
+await child.save(['name']);
 ```
 
 ### Creating new resources
