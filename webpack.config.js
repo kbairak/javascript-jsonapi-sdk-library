@@ -6,7 +6,7 @@ module.exports = {
   output: {
     filename: 'jsonapi.js',
     path: path.resolve(__dirname, 'bundle'),
-    library: 'jsonapi',
+    library: { name: 'jsonapi', type: 'umd' },
   },
   module: {
     rules: [

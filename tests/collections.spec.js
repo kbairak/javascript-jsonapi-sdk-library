@@ -1,13 +1,22 @@
 /* global test jest expect */
 
-import '@babel/polyfill';
-
 import axios from 'axios';
 
 import { Collection } from '../src/collections';
 import { api, expectRequestMock } from './utils';
 
 jest.mock('axios');
+
+function testItem(id, attributes = {}) {
+  return {
+    id,
+    attributes,
+    links: {},
+    redirect: null,
+    relationships: {},
+    related: {},
+  };
+}
 
 
 test('list', async () => {
@@ -25,22 +34,8 @@ test('list', async () => {
       _url: '/items',
       _params: null,
       data: [
-        {
-          id: '1',
-          attributes: { name: 'item 1' },
-          links: {},
-          redirect: null,
-          relationships: {},
-          related: {},
-        },
-        {
-          id: '2',
-          attributes: { name: 'item 2' },
-          links: {},
-          redirect: null,
-          relationships: {},
-          related: {},
-        },
+        testItem('1', { name: 'item 1' }),
+        testItem('2', { name: 'item 2' }),
       ],
       next: null,
       previous: null,
@@ -72,24 +67,7 @@ test('pagination', async () => {
     _API: api,
     _url: '/items?page=2',
     _params: null,
-    data: [
-      {
-        id: '3',
-        attributes: {},
-        links: {},
-        redirect: null,
-        relationships: {},
-        related: {},
-      },
-      {
-        id: '4',
-        attributes: {},
-        links: {},
-        redirect: null,
-        relationships: {},
-        related: {},
-      },
-    ],
+    data: [testItem('3'), testItem('4')],
     next: null,
     previous: '/items',
   });
@@ -217,14 +195,9 @@ test('get', async () => {
       '/items',
       { params: { 'filter[name]': 'item 1' } },
     );
-    expect(item).toEqual({
-      id: '1',
-      attributes: { name: 'item 1', created: 'yesterday' },
-      links: {},
-      redirect: null,
-      relationships: {},
-      related: {},
-    });
+    expect(item).toEqual(
+      testItem('1', { name: 'item 1', created: 'yesterday' }),
+    );
   }
 
   before();
@@ -278,24 +251,7 @@ test('fetch plural relationship', async () => {
     _API: api,
     _url: '/parents/1/children',
     _params: null,
-    data: [
-      {
-        id: '1',
-        attributes: {},
-        links: {},
-        redirect: null,
-        relationships: {},
-        related: {},
-      },
-      {
-        id: '2',
-        attributes: {},
-        links: {},
-        redirect: null,
-        relationships: {},
-        related: {},
-      },
-    ],
+    data: [testItem('1'), testItem('2')],
     previous: null,
     next: null,
   });
@@ -320,25 +276,70 @@ test('fetch plural relationship and apply filters', async () => {
     _API: api,
     _url: '/parents/1/children',
     _params: { 'filter[a]': 'b' },
-    data: [
-      {
-        id: '1',
-        attributes: {},
-        links: {},
-        redirect: null,
-        relationships: {},
-        related: {},
-      },
-      {
-        id: '2',
-        attributes: {},
-        links: {},
-        redirect: null,
-        relationships: {},
-        related: {},
-      },
-    ],
+    data: [testItem('1'), testItem('2')],
     previous: null,
     next: null,
   });
+});
+
+test('`allPages` generator', async () => {
+  const list = api.Item.list();
+  const response1 = Promise.resolve({ data: {
+    data: [{ type: 'items', id: '1' }, { type: 'items', id: '2' }],
+    links: { next: '/items?page=2' },
+  } });
+  const response2 = Promise.resolve({ data: {
+    data: [{ type: 'items', id: '3' }, { type: 'items', id: '4' }],
+    links: { previous: '/items' },
+  } });
+  axios.request.
+    mockResolvedValueOnce(response1).
+    mockResolvedValueOnce(response2);
+  const result = [];
+  for await (const page of list.allPages()) {
+    result.push(page);
+  }
+  expect(result).toEqual([
+    {
+      _API: api,
+      _url: '/items',
+      _params: null,
+      data: [testItem('1'), testItem('2')],
+      next: '/items?page=2',
+      previous: null,
+    },
+    {
+      _API: api,
+      _url: '/items?page=2',
+      _params: null,
+      data: [testItem('3'), testItem('4')],
+      next: null,
+      previous: '/items',
+    }
+  ]);
+});
+
+test('`all` generator', async () => {
+  const response1 = Promise.resolve({ data: {
+    data: [{ type: 'items', id: '1' }, { type: 'items', id: '2' }],
+    links: { next: '/items?page=2' },
+  } });
+  const response2 = Promise.resolve({ data: {
+    data: [{ type: 'items', id: '3' }, { type: 'items', id: '4' }],
+    links: { previous: '/items' },
+  } });
+  axios.request.
+    mockResolvedValueOnce(response1).
+    mockResolvedValueOnce(response2);
+  const result = [];
+  const page = api.Item.list();
+  for await (const item of page.all()) {
+    result.push(item);
+  }
+  expect(result).toEqual([
+    testItem('1'),
+    testItem('2'),
+    testItem('3'),
+    testItem('4'),
+  ]);
 });

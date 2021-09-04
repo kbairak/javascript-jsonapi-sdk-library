@@ -3,19 +3,19 @@ import _ from 'lodash';
 import { Resource } from './resources';
 
 export class Collection {
-  /*  const children = api.Child.list();
-    * await children.fetch();
-    * console.log(children.data[0].get('name'));
-    */
   constructor(API, url, params = null) {
     this._API = API;
     this._url = url;
     this._params = params;
-    this.data = [];
+    this.data = null;
     this.next = this.previous = null;
   }
 
   async fetch() {
+    if (! _.isNull(this.data)) {
+      return;
+    }
+
     const response = await this._API.request(
       'get',
       this._url,
@@ -23,6 +23,7 @@ export class Collection {
     );
     this.next = (response.data.links || {}).next || null;
     this.previous = (response.data.links || {}).previous || null;
+    this.data = [];
     for (const item of response.data.data) {
       this.data.push(this._API.asResource(item));
     }
@@ -100,6 +101,28 @@ export class Collection {
     }
     else {
       return qs.data[0];
+    }
+  }
+
+  async * allPages() {
+    await this.fetch();
+    let page = this;
+    while (true) {
+      yield page;
+      if (page.next) {
+        page = await page.getNext();
+      }
+      else {
+        break;
+      }
+    }
+  }
+
+  async * all() {
+    for await (const page of this.allPages()) {
+      for (const item of page.data) {
+        yield item;
+      }
     }
   }
 }

@@ -1,7 +1,5 @@
 /* global expect */
 
-import '@babel/polyfill';
-
 import axios from 'axios';
 
 import { Resource } from '../src/resources';

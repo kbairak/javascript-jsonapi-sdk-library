@@ -511,6 +511,21 @@ Each method does the following:
   |-------------------------------|-----------------|
   | `.extra({ group_by: 'age' })` | `?group_by=age` |
 
+- `all` returns a generator that will yield all results of a paginated
+  collection, using multiple requests if necessary; the pages are fetched
+  on-demand, so if you abort the generator early, you will not be performing
+  requests against every possible page
+
+  ```javascript
+  const list = familyApi.Child.list();
+  for await (const child of list.all()) {
+    console.log(child.get('name'));
+  }
+  ```
+
+- `allPages` returns a generator of non-empty pages; similarly to `all`, pages
+  are fetched on-demand (in fact, `all` uses `allPages` internally)
+
 All the above methods can be chained to each other. So:
 
 ```javascript
@@ -545,9 +560,10 @@ await children.fetch();
 will only make one request to the server during the resolution of the
 `.fetch()` call in the last line.
 
-You can access pagination via the `getNext()`, and `getPrevious()` methods of a
-returned page, provided that that the page's `.next` and `.previous` attributes
-are not `null`:
+You can also access pagination via the `getNext()`, and `getPrevious()` methods
+of a returned page, provided that that the page's `.next` and `.previous`
+attributes are not `null` (in fact, `all()` and `allPages()` use `getNext()`
+internally):
 
 ```javascript
 const all = [];
@@ -816,11 +832,11 @@ TODO
 
 ## TODOS:
 
-- [ ] README
+- [x] README
 - [ ] include param and included items in response
 - [ ] plural relationship editing
 - [ ] bulk actions
 - [ ] proper exceptions
 - [ ] create-with-form (aka more fine-grained control into axios API)
 - [ ] redirects
-- [ ] generators?
+- [x] generators?

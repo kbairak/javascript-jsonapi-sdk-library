@@ -1,11 +1,12 @@
 {
   "name": "javascript-jsonapi-sdk-library",
-  "version": "0.0.1",
-  "author": "Konstantinos Bairaktaris <ikijob@gmail.com> (https://www.kbairak.net)",
+  "version": "0.0.6",
+  "author": "Konstantinos Bairaktaris",
   "description": "{json:api} SDK library",
-  "main": "dist/jsonapi.js",
+  "main": "bundle/jsonapi.js",
+  "module": "bundle/jsonapi.js",
   "browser": "bundle/jsonapi.js",
-  "node": "src/index.js",
+  "node": "bundle/jsonapi.js",
   "scripts": {
     "eslint": "eslint --fix src",
     "eslint_nofix": "eslint src",
@@ -25,7 +26,6 @@
     "api",
     "client"
   ],
-  "author": "Konstantinos Bairaktaris",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/kbairak/javascript-jsonapi-sdk-library/issues"
@@ -45,8 +45,8 @@
     "webpack-cli": "^4.8.0"
   },
   "dependencies": {
-    "@babel/polyfill": "^7.12.1",
     "axios": "^0.21.1",
+    "core-js": "^3.17.2",
     "lodash": "^4.17.21"
   }
 }
