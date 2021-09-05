@@ -597,6 +597,56 @@ are getting an unfetched collection representing the `parent->children`
 relationship, the second time we are converting the unfetched page to a fetched
 one)_
 
+#### Prefetching relationships with `include`
+
+If you use the `include` method on a collection retrieval or if you use the
+`include` property on `.get()` (and if the server supports it), the included
+values of the response will be used to prefill the relevant fields of
+`related`:
+
+```javascript
+const child = await familyApi.Child.get("1", { include: ['parent'] })
+console.log(child.get('parent').get('name'));  // No need to fetch the parent
+// <<< 'Zeus'
+
+const children = familyApi.Child.list().include('parent')
+await children.fetch();
+// No need to fetch the parents
+console.log(children.data[0].get('parent').get('name'));
+// <<< 'Zeus'
+console.log(children.data[1].get('parent').get('name'));
+// <<< 'Zeus'
+// ...
+```
+
+In case of a plural relationships with a list `data` field, if the response
+supplies the related items in the `included` section, these too will be
+prefilled.
+
+```javascript
+const parent = await familyApi.Parent.get("1", { include: ['children'] });
+
+// Assuming the response looks like:
+// {'data': {'type': "parents",
+//           'id': "1",
+//           'attributes': ...,
+//           'relationships': {'children': {'data': [{'type': "children", 'id': "1"},
+//                                                   {'type': "children", 'id': "2"}],
+//                                          'links': ...}}},
+//  'included': [{'type': "children",
+//                'id': "1",
+//                'attributes': {'name': "Hercules"}},
+//               {'type': "children",
+//                'id': "2",
+//                'attributes': {'name': "Achilles"}}]}
+
+// No need to fetch
+console.log(parent.get('children').data[0].get('name'));
+// <<< 'Hercules'
+console.log(parent.get('children').data[1].get('name'));
+// <<< 'Achilles'
+```
+
 ### Getting single resource objects using filters
 
 Appending `.get()` to a collection will ensure that the collection is of size 1
@@ -833,7 +883,8 @@ TODO
 ## TODOS:
 
 - [x] README
-- [ ] include param and included items in response
+- [x] include param and included items in response
+- [ ] include with plural relationship
 - [ ] plural relationship editing
 - [ ] bulk actions
 - [ ] proper exceptions

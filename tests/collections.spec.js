@@ -144,6 +144,31 @@ test('include', async () => {
   await testParams(items, { include: 'a,b' });
 });
 
+test('include with response', async () => {
+  const children = api.Child.include('parent');
+  axios.request.mockResolvedValue(Promise.resolve({ data: {
+    data: [
+      {
+        type: 'children',
+        id: '1',
+        relationships: { parent: { data: { type: 'parents', id: '3' } } },
+      },
+      {
+        type: 'children',
+        id: '2',
+        relationships: { parent: { data: { type: 'parents', id: '4' } } },
+      },
+    ],
+    included: [
+      { type: 'parents', id: '3', attributes: { name: 'Zeus' } },
+      { type: 'parents', id: '4', attributes: { name: 'Hera' } },
+    ],
+  } }));
+  await children.fetch();
+  expect(children.data[0].get('parent').get('name')).toEqual('Zeus');
+  expect(children.data[1].get('parent').get('name')).toEqual('Hera');
+});
+
 test('sort', async () => {
   let items;
 

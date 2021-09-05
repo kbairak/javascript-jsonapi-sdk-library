@@ -374,3 +374,26 @@ test('change', async () => {
   );
   expect(child.related.parent).toBeNull();
 });
+
+test('constructor with include', () => {
+  const child = new api.Child({
+    id: '1',
+    parent: { type: 'parents', id: '2' },
+    included: [{ type: 'parents', id: '2', attributes: { name: 'Zeus' } }],
+  });
+  expect(child.get('parent').get('name')).toEqual('Zeus');
+});
+
+test('get with include', async () => {
+  axios.request.mockResolvedValue(Promise.resolve({ data: {
+    data: {
+      type: 'children',
+      id: '1',
+      relationships: { parent: { data: { type: 'parents', id: '2' } } },
+    },
+    included: [{ type: 'parents', id: '2', attributes: { name: 'Zeus' } }],
+  } }));
+  const child = await api.Child.get('1', { include: ['parent'] });
+  expectRequestMock('get', '/children/1', { params: { include: 'parent' } });
+  expect(child.get('parent').get('name')).toEqual('Zeus');
+});

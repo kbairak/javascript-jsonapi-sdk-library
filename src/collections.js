@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
 import { Resource } from './resources';
+import { isNull, hasData } from './utils';
 
 export class Collection {
   constructor(API, url, params = null) {
@@ -12,7 +13,7 @@ export class Collection {
   }
 
   async fetch() {
-    if (! _.isNull(this.data)) {
+    if (! isNull(this.data)) {
       return;
     }
 
@@ -21,12 +22,36 @@ export class Collection {
       this._url,
       { params: this._params },
     );
-    this.next = (response.data.links || {}).next || null;
-    this.previous = (response.data.links || {}).previous || null;
+
+    const includedMap = {};
+    if ('included' in response.data) {
+      for (const includedItem of response.data.included) {
+        const key = `${includedItem.type}__${includedItem.id}`;
+        includedMap[key] = includedItem;
+      }
+    }
+
     this.data = [];
     for (const item of response.data.data) {
-      this.data.push(this._API.asResource(item));
+      const related = {};
+      for (const name in (item.relationships || {})) {
+        const relationship = item.relationships[name];
+        if (isNull(relationship) || ! hasData(relationship)) {
+          continue;
+        }
+        const key = `${relationship.data.type}__${relationship.data.id}`;
+        if (key in includedMap) {
+          related[name] = this._API.new(includedMap[key]);
+        }
+      }
+      const relationships = item.relationships || {};
+      delete item.relationships;
+      Object.assign(relationships, related);
+      this.data.push(this._API.new({ relationships, ...item }));
     }
+
+    this.next = (response.data.links || {}).next || null;
+    this.previous = (response.data.links || {}).previous || null;
   }
 
   async getNext() {
@@ -66,7 +91,7 @@ export class Collection {
 
   page(arg) {
     let params = {};
-    if (_.isObject(arg)) {
+    if (_.isPlainObject(arg)) {
       for (const key in arg) {
         const value = arg[key];
         params[`page[${key}]`] = value;

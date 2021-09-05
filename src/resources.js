@@ -42,6 +42,7 @@ export class Resource {
     links = {},
     redirect = null,
     type = null,
+    included = [],
     ...props
   }) {
     /*  Write to the basic attributes of the resource. The input should
@@ -106,6 +107,25 @@ export class Resource {
       if (isNull(relationship) || hasData(relationship)) {
         this.setRelated(key, value);
       }
+    }
+
+    const includedMap = {};
+    for (const includedItem of included) {
+      const key = `${includedItem.type}__${includedItem.id}`;
+      includedMap[key] = includedItem;
+    }
+    for (const relationshipName in this.relationships) {
+      const relationship = this.relationships[relationshipName];
+      if (isNull(relationship) || ! hasData(relationship)) {
+        continue;
+      }
+      if (! isList(relationship.data)) { // Singular
+        const key = `${relationship.data.type}__${relationship.data.id}`;
+        if (key in includedMap) {
+          this.setRelated(relationshipName, includedMap[key]);
+        }
+      }
+      // else {}  // Plural, TODO
     }
   }
 
@@ -211,25 +231,29 @@ export class Resource {
     }
   }
 
-  async reload() {
+  async reload(include = null) {
     // Fetch fresh data from the server for the object.
 
     const response = await this.constructor.API.request(
       'get',
       this.getItemUrl(),
+      include ? { params: { include: include.join(',') } } : {},
     );
-    this._overwrite(response.data.data);
+    const body = response.data;
+    const data = response.data.data;
+    if ('included' in body) {
+      data.included = body.included;
+    }
+    this._overwrite(data);
   }
 
-  static async get(arg = null) {
-    // Get a resource object by its ID
-
-    if (arg === null || _.isObject(arg)) {
+  static async get(arg = null, { include = null } = {}) {
+    if (arg === null || _.isPlainObject(arg)) {
       return this.list().get(arg);
     }
     else {
-      const instance = new this({ arg });
-      await instance.reload();
+      const instance = new this({ id: arg });
+      await instance.reload(include);
       return instance;
     }
   }
