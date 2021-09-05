@@ -494,6 +494,18 @@ export class Resource {
     }
   }
 
+  async add(field, values) {
+    await this._editPluralRelationship('post', field, values);
+  }
+
+  async reset(field, values) {
+    await this._editPluralRelationship('patch', field, values);
+  }
+
+  async remove(field, values) {
+    await this._editPluralRelationship('delete', field, values);
+  }
+
   async _editRelationship(method, field, data) {
     const url = _.get(
       this,
@@ -501,6 +513,13 @@ export class Resource {
       `/${this.constructor.TYPE}/${this.id}/relationships/${field}`,
     );
     await this.constructor.API.request(method, url, { data: { data } });
+  }
+
+  async _editPluralRelationship(method, field, values) {
+    const payload = values.map(
+      (item) => this.constructor.API.asResource(item).asResourceIdentifier()
+    );
+    await this._editRelationship(method, field, payload);
   }
 
   static list() {

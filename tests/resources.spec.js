@@ -375,6 +375,33 @@ test('change', async () => {
   expect(child.related.parent).toBeNull();
 });
 
+test('edit plural relationships', async () => {
+  const parent = new api.Parent({
+    id: '1',
+    relationships: {
+      children: { links: { self: '/parents/1/relationships/children/' } },
+    },
+  });
+  axios.request.mockResolvedValue(Promise.resolve({}));
+  for (const row of [
+    ['add', 'post'], ['reset', 'patch'], ['remove', 'delete'],
+  ]) {
+    const [instanceMethod, httpMethod] = row;
+    await parent[instanceMethod](
+      'children',
+      [new api.Child({ id: '2' }), new api.Child({ id: '3' })],
+    );
+    expectRequestMock(
+      httpMethod,
+      '/parents/1/relationships/children/',
+      { data: { data: [
+        { type: 'children', id: '2' },
+        { type: 'children', id: '3' },
+      ] } },
+    );
+  }
+});
+
 test('constructor with include', () => {
   const child = new api.Child({
     id: '1',

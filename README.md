@@ -597,7 +597,7 @@ are getting an unfetched collection representing the `parent->children`
 relationship, the second time we are converting the unfetched page to a fetched
 one)_
 
-#### Prefetching relationships with `include`
+### Prefetching relationships with `include`
 
 If you use the `include` method on a collection retrieval or if you use the
 `include` property on `.get()` (and if the server supports it), the included
@@ -874,9 +874,42 @@ something like `/children/1/relationships/parent`, with a body of:
 
 #### Plural relationships
 
-TODO
+For changing plural relationships, you can use one of the `add`, `remove` and
+`reset` methods:
+
+```javascript
+const parent = await familyApi.Parent.get('1');
+parent.add('children', [new_child, ...])
+parent.remove('children', [existing_child, ...])
+parent.reset('children', [child_a, child_b, ...])
+```
+
+These will send a POST, DELETE or PATCH request respectively to the URL
+indicated by `parent.relationships.children.links.self`, which will most likely
+be something like `/parents/1/relationships/children`, with a body of:
+
+```json
+{"data": [{"type": "children", "id": "1"},
+          {"type": "children", "id": "2"},
+          {"...": "..."}]}
+```
+
+Similar to the case when we were instantiating objects with relationships, the
+values passed to the above methods can either be resource objects, "resource
+identifiers" or entire relationship objects:
+
+```javascript
+await parent.add('children', [await familyApi.Child.get("1"),
+                              new familyApi.Child({ id: '2' }),
+                              { type: 'children', id: '3' },
+                              { data: { type: 'children', id: '4' } }]);
+```
 
 ### Bulk operations
+
+TODO
+
+### Form uploads, redirects
 
 TODO
 
@@ -885,7 +918,7 @@ TODO
 - [x] README
 - [x] include param and included items in response
 - [ ] include with plural relationship
-- [ ] plural relationship editing
+- [x] plural relationship editing
 - [ ] bulk actions
 - [ ] proper exceptions
 - [ ] create-with-form (aka more fine-grained control into axios API)
