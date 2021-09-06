@@ -37,5 +37,6 @@ export function expectRequestMock(
     },
     data,
     params,
+    maxRedirects: 0,
   });
 }

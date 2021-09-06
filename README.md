@@ -917,10 +917,10 @@ TODO
 
 - [x] README
 - [x] include param and included items in response
-- [ ] include with plural relationship
+- [x] include with plural relationship
 - [x] plural relationship editing
 - [ ] bulk actions
-- [ ] proper exceptions
+- [x] proper exceptions
 - [ ] create-with-form (aka more fine-grained control into axios API)
-- [ ] redirects
+- [x] redirects
 - [x] generators?

@@ -1,4 +1,8 @@
-import { JsonApi } from './apis';
-import { Resource } from './resources';
-
-export { JsonApi, Resource };
+export { JsonApi } from './apis';
+export { Resource } from './resources';
+export {
+  JsonApiException,
+  NotSingleItem,
+  DoesNotExist,
+  MultipleObjectsReturned,
+} from './errors';

@@ -3,6 +3,7 @@
 import axios from 'axios';
 
 import { Collection } from '../src/collections';
+import { DoesNotExist, MultipleObjectsReturned } from '../src/errors';
 import { api, expectRequestMock } from './utils';
 
 jest.mock('axios');
@@ -243,7 +244,9 @@ test('get with errors', async () => {
     await api.Item.get();
   }
   catch (e) {
-    errorRaised = true;
+    if (e instanceof DoesNotExist) {
+      errorRaised = true;
+    }
   }
   expect(errorRaised).toBeTruthy();
 
@@ -256,7 +259,9 @@ test('get with errors', async () => {
     await api.Item.get();
   }
   catch (e) {
-    errorRaised = true;
+    if (e instanceof MultipleObjectsReturned) {
+      errorRaised = true;
+    }
   }
   expect(errorRaised).toBeTruthy();
 });

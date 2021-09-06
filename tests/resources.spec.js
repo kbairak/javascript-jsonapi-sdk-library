@@ -424,3 +424,83 @@ test('get with include', async () => {
   expectRequestMock('get', '/children/1', { params: { include: 'parent' } });
   expect(child.get('parent').get('name')).toEqual('Zeus');
 });
+
+test('redirect', async () => {
+  const item = new api.Item({ id: '1' });
+  axios.request.mockResolvedValue(Promise.resolve({
+    status: 302,
+    headers: { Location: 'http://redirect.com' },
+  }));
+  await item.reload();
+  axios.get.mockResolvedValue(Promise.resolve('Redirect output'));
+  const response = await item.follow();
+
+  expect(axios.get).toHaveBeenCalledWith('http://redirect.com');
+  expect(response).toEqual('Redirect output');
+});
+
+test('get with included plural relationship', async () => {
+  axios.request.mockResolvedValue(Promise.resolve({ data: {
+    data: {
+      type: 'parents',
+      relationships: { children: {
+        links: { related: '/parents/1/children' },
+        data: [{ type: 'children', id: '2' }, { type: 'children', id: '3' }],
+      } },
+    },
+    included: [
+      {
+        type: 'children',
+        id: '2',
+        attributes: { name: 'Hercules' },
+        relationships: { parent: { data: { type: 'parents', id: '1' } } },
+      },
+      {
+        type: 'children',
+        id: '3',
+        attributes: { name: 'Achilles' },
+        relationships: { parent: { data: { type: 'parents', id: '1' } } },
+      },
+    ],
+  } }));
+  const parent = await api.Parent.get('1', { include: ['children'] });
+  expect(parent.get('children')).toEqual({
+    _API: api,
+    _url: '/parents/1/children',
+    _params: null,
+    data: [
+      {
+        id: '2',
+        attributes: { name: 'Hercules' },
+        links: {},
+        redirect: null,
+        relationships: { parent: { data: { type: 'parents', id: '1' } } },
+        related: { parent: {
+          id: '1',
+          attributes: {},
+          links: {},
+          redirect: null,
+          relationships: {},
+          related: {},
+        } },
+      },
+      {
+        id: '3',
+        attributes: { name: 'Achilles' },
+        links: {},
+        redirect: null,
+        relationships: { parent: { data: { type: 'parents', id: '1' } } },
+        related: { parent: {
+          id: '1',
+          attributes: {},
+          links: {},
+          redirect: null,
+          relationships: {},
+          related: {},
+        } },
+      },
+    ],
+    previous: null,
+    next: null,
+  });
+});

@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import axios from 'axios';
 
 import { Collection } from './collections';
 import {
@@ -112,7 +113,7 @@ export class Resource {
     const includedMap = {};
     for (const includedItem of included) {
       const key = `${includedItem.type}__${includedItem.id}`;
-      includedMap[key] = includedItem;
+      includedMap[key] = this.constructor.API.asResource(includedItem);
     }
     for (const relationshipName in this.relationships) {
       const relationship = this.relationships[relationshipName];
@@ -125,7 +126,19 @@ export class Resource {
           this.setRelated(relationshipName, includedMap[key]);
         }
       }
-      // else {}  // Plural, TODO
+      else {
+        const related = [];
+        for (const item of relationship.data) {
+          const key = `${item.type}__${item.id}`;
+          if (key in includedMap) {
+            related.push(includedMap[key]);
+          }
+          else {
+            related.push(item);
+          }
+        }
+        this.setRelated(relationshipName, related);
+      }
     }
   }
 
@@ -187,9 +200,18 @@ export class Resource {
       );
     }
     const relationship = this.relationships[key];
-    if (isList(value) || hasData(value) && isList(value.data)) {
-      // TODO: Plural relationships
-      throw new Error('Cannot handle plural relationships (yet)');
+    if (isList(value) || (hasData(value) && isList(value.data))) {
+      if (hasData(value)) {
+        value = value.data;
+      }
+      this.related[key] = new Collection(
+        this.constructor.API,
+        relationship.links.related,
+      );
+      this.related[key].data = [];
+      for (const item of value) {
+        this.related[key].data.push(this.constructor.API.asResource(item));
+      }
     }
     else {
       value = this.constructor.API.asResource(value);
@@ -239,6 +261,16 @@ export class Resource {
       this.getItemUrl(),
       include ? { params: { include: include.join(',') } } : {},
     );
+    if (response.status >= 300 && response.status < 400 && response.headers.Location) {
+      this._overwrite({
+        id: this.id,
+        attributes: this.attributes,
+        relationships: Object.assign({}, this.relationships, this.related),
+        links: this.links,
+        redirect: response.headers.Location,
+      });
+      return;
+    }
     const body = response.data;
     const data = response.data.data;
     if ('included' in body) {
@@ -524,6 +556,13 @@ export class Resource {
 
   static list() {
     return new Collection(this.API, this.getCollectionUrl());
+  }
+
+  async follow() {
+    if (! this.redirect) {
+      throw new Error('Cannot follow without redirect');
+    }
+    return await axios.get(this.redirect);
   }
 
   getItemUrl() {

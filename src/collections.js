@@ -2,6 +2,7 @@ import _ from 'lodash';
 
 import { Resource } from './resources';
 import { isNull, hasData } from './utils';
+import { DoesNotExist, MultipleObjectsReturned } from './errors';
 
 export class Collection {
   constructor(API, url, params = null) {
@@ -119,10 +120,10 @@ export class Collection {
     const qs = this.filter(filters);
     await qs.fetch();
     if (qs.data.length == 0) {
-      throw new Error('Does not exist');
+      throw new DoesNotExist();
     }
     else if (qs.data.length > 1) {
-      throw new Error(`Multiple objects returned (${qs.data.length})`);
+      throw new MultipleObjectsReturned(qs.data.length);
     }
     else {
       return qs.data[0];

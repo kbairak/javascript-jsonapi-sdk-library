@@ -5,6 +5,7 @@ import './utils';
 import axios from 'axios';
 
 import { JsonApi } from '../src/apis';
+import { JsonApiException } from '../src/errors';
 
 jest.mock('axios');
 
@@ -43,7 +44,7 @@ test('JsonApi.register', () => {
   expect(api.registry.resources).toEqual(api.Resource);
 });
 
-test('Jsonapi.request with GET', async () => {
+test('JsonApi.request with GET', async () => {
   class Api extends JsonApi {
     static HOST = 'https://api.com';
   }
@@ -60,5 +61,41 @@ test('Jsonapi.request with GET', async () => {
     },
     data: null,
     params: null,
+    maxRedirects: 0,
   });
+});
+
+test('JsonApi.request with error', async () => {
+  let errorRaised = false;
+  class Api extends JsonApi {
+    static HOST = 'https://api.com';
+  }
+  const api = new Api({ auth: 'MYTOKEN' });
+  const errors = [
+    {
+      status: 401,
+      code: 'Unauthorized',
+      title: 'Authentication error',
+      detail: 'Authentication failed',
+    },
+    {
+      status: 400,
+      code: 'BaRequest',
+      title: 'Bad request',
+      detail: '\'filter[project]\' parameter is required',
+    },
+  ];
+  axios.request.mockResolvedValue(Promise.reject({ response: {
+    status: 400,
+    data: { errors },
+  } }));
+  try {
+    await api.request('get', 'path');
+  }
+  catch (e) {
+    errorRaised = true;
+    expect(e instanceof JsonApiException).toBeTruthy();
+    expect(e).toEqual( new JsonApiException(400, errors) );
+  }
+  expect(errorRaised).toBeTruthy();
 });

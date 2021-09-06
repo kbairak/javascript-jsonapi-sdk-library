@@ -2,6 +2,7 @@ import axios from 'axios';
 import _ from 'lodash';
 
 import { Resource } from './resources';
+import { JsonApiException } from './errors';
 import { isNull, isResource } from './utils';
 
 export class JsonApi {
@@ -55,9 +56,26 @@ export class JsonApi {
       'Content-Type': 'application/vnd.api+json',
       ...this.auth(),
     };
-    const response = await axios.request({
-      method, url, headers, data, params,
-    });
+    let response;
+    try {
+      response = await axios.request({
+        method,
+        url,
+        headers,
+        data,
+        params,
+        maxRedirects: 0,
+      });
+    }
+    catch (e) {
+      const errors = _.get(e.response, 'data.errors');
+      if (errors) {
+        throw new JsonApiException(e.response.status, errors);
+      }
+      else {
+        throw e;
+      }
+    }
     return response;
   }
 
