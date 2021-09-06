@@ -504,3 +504,145 @@ test('get with included plural relationship', async () => {
     next: null,
   });
 });
+
+test('bulk create', async () => {
+  let items;
+  axios.request.mockResolvedValue(Promise.resolve({ data: { data: [
+    { type: 'items', id: '1', attributes: { name: 'item 1' } },
+    { type: 'items', id: '2', attributes: { name: 'item 2' } },
+  ] } }));
+  function checks() {
+    expectRequestMock('post', '/items', { data: { data: [
+      { type: 'items', attributes: { name: 'item 1' } },
+      { type: 'items', attributes: { name: 'item 2' } },
+    ] } });
+    expect(items).toEqual({
+      _API: api,
+      _url: '',
+      data: [
+        { attributes: { name: 'item 1' }, id: '1', type: 'items' },
+        { attributes: { name: 'item 2' }, id: '2', type: 'items' },
+      ],
+      _params: null,
+      previous: null,
+      next: null,
+    });
+  }
+
+  items = await api.Item.bulkCreate([
+    new api.Item({ name: 'item 1' }),
+    new api.Item({ name: 'item 2' }),
+  ]);
+  checks();
+
+  items = await api.Item.bulkCreate([
+    { type: 'items', attributes: { name: 'item 1' } },
+    { type: 'items', attributes: { name: 'item 2' } },
+  ]);
+  checks();
+});
+
+test('bulk delete', async () => {
+  let result;
+  axios.request.mockResolvedValue(Promise.resolve({}));
+  function checks() {
+    expect(result).toBe(2);
+    expectRequestMock('delete', '/items', { data: { data: [
+      { type: 'items', id: '1' },
+      { type: 'items', id: '2' },
+    ] } });
+  }
+
+  result = await api.Item.bulkDelete(['1', '2']);
+  checks();
+
+  result = await api.Item.bulkDelete([
+    { type: 'items', id: '1' },
+    { type: 'items', id: '2' },
+  ]);
+  checks();
+
+  result = await api.Item.bulkDelete([
+    new api.Item({ id: '1' }),
+    new api.Item({ id: '2' }),
+  ]);
+  checks();
+});
+
+test('bulk update', async () => {
+  let children;
+  axios.request.mockResolvedValue(Promise.resolve({ data: { data: [
+    {
+      type: 'children',
+      id: '1',
+      attributes: { name: 'Hercules' },
+      relationships: { data: { type: 'parents', id: '1' } },
+    },
+    {
+      type: 'children',
+      id: '2',
+      attributes: { name: 'Achilles' },
+      relationships: { data: { type: 'parents', id: '2' } },
+    },
+  ] } }));
+  const zeus = new api.Parent({ id: '1', name: 'Zeus' });
+  const apollo = new api.Parent({ id: '2', name: 'Apollo' });
+
+  function checkCollection() {
+    expect(children).toEqual({
+      _API: api,
+      _url: '',
+      data: [
+        {
+          attributes: { name: 'Hercules' },
+          id: '1',
+          relationships: { data: { type: 'parents', id: '1' } },
+          type: 'children',
+        },
+        {
+          attributes: { name: 'Achilles' },
+          id: '2',
+          relationships: { data: { type: 'parents', id: '2' } },
+          type: 'children',
+        },
+      ],
+      _params: null,
+      previous: null,
+      next: null,
+    });
+  }
+
+  children = await api.Child.bulkUpdate(
+    [
+      new api.Child({ id: '1', name: 'Hercules', parent: zeus }),
+      new api.Child({ id: '2', name: 'Achilles', parent: apollo }),
+    ],
+    ['name'],
+  );
+  expectRequestMock('patch', '/children', { data: { data: [
+    { type: 'children', id: '1', attributes: { name: 'Hercules' } },
+    { type: 'children', id: '2', attributes: { name: 'Achilles' } },
+  ] } });
+  checkCollection();
+
+  children = await api.Child.bulkUpdate(
+    [
+      new api.Child({ id: '1', name: 'Hercules', parent: zeus }),
+      new api.Child({ id: '2', name: 'Achilles', parent: apollo }),
+    ],
+    ['parent'],
+  );
+  expectRequestMock('patch', '/children', { data: { data: [
+    {
+      type: 'children',
+      id: '1',
+      relationships: { parent: { data: { type: 'parents', id: '1' } } },
+    },
+    {
+      type: 'children',
+      id: '2',
+      relationships: { parent: { data: { type: 'parents', id: '2' } } },
+    },
+  ] } });
+  checkCollection();
+});

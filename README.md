@@ -907,7 +907,42 @@ await parent.add('children', [await familyApi.Child.get("1"),
 
 ### Bulk operations
 
-TODO
+Resource subclasses provide the `bulkDelete`, `bulkCreate` and `bulkUpdate`
+static methods for API endpoints that support such operations. These static
+methods accepts lists of resource objects or {json:api} representations on
+which the operation will be performed on. Furthermore, `bulkUpdate` accepts a
+`fields` argument with the `attributes` and `relationships` of the objects it
+will attempt to update.
+
+```javascript
+// Bulk-create
+const children = await familyApi.Child.bulkCreate([
+   new familyApi.Child({ name: 'One', parent: parent }),
+   { type: 'children', attributes: { name: 'Two' }, relationships: { parent: parent } },
+]);
+
+// Bulk-update
+const child = await familyApi.Child.get('a');
+child.set('married', true);
+
+const children = await familyApi.Child.bulkUpdate(
+   [child,
+    { type: 'children', id: 'b', attributes: { married: true } }],
+   ['married'],
+);
+
+// Bulk-delete
+const child = await familyApi.Child.get('a');
+const deletedCount = await familyApi.Child.bulkDelete([child, { id: 'b' }, 'c']);
+
+const parent = await familyApi.Parent.get('1');
+const childrenCollection = await parent.fetch('children');
+const allChildren = [];
+for await (const child of children_collection.all()) {
+    allChildren.push(child);
+}
+await familyApi.Child.bulkDelete(allChildren);
+```
 
 ### Form uploads, redirects
 
@@ -919,7 +954,7 @@ TODO
 - [x] include param and included items in response
 - [x] include with plural relationship
 - [x] plural relationship editing
-- [ ] bulk actions
+- [x] bulk actions
 - [x] proper exceptions
 - [ ] create-with-form (aka more fine-grained control into axios API)
 - [x] redirects

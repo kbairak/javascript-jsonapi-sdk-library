@@ -55,6 +55,12 @@ export class Collection {
     this.previous = (response.data.links || {}).previous || null;
   }
 
+  static fromData(API, data) {
+    const result = new this(API, '');
+    result.data = data;
+    return result;
+  }
+
   async getNext() {
     const page = new this.constructor(this._API, this.next);
     await page.fetch();

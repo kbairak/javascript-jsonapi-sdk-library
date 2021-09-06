@@ -565,6 +565,83 @@ export class Resource {
     return await axios.get(this.redirect);
   }
 
+  static async bulkCreate(args) {
+    const data = [];
+    for (const arg of args) {
+      const resource = this.API.asResource(arg);
+      const payloadItem = { type: this.TYPE };
+      if (_.size(resource.attributes)) {
+        payloadItem.attributes = resource.attributes;
+      }
+      if (_.size(resource.relationships)) {
+        payloadItem.relationships = resource.relationships;
+      }
+      if (resource.id) {
+        payloadItem.id = resource.id;
+      }
+      data.push(payloadItem);
+    }
+    const response = await this.API.request(
+      'post',
+      this.getCollectionUrl(),
+      { data: { data } },
+    );
+    return Collection.fromData(this.API, response.data.data);
+  }
+
+  static async bulkDelete(args) {
+    const data = [];
+    for (const arg of args) {
+      if (isResource(arg)) {
+        data.push(arg.asResourceIdentifier());
+      }
+      else if (_.isPlainObject(arg)) {
+        data.push(this.API.asResource(arg).asResourceIdentifier());
+      }
+      else {
+        data.push({ type: this.TYPE, id: arg });
+      }
+    }
+    await this.API.request(
+      'delete',
+      this.getCollectionUrl(),
+      { data: { data } },
+    );
+    return data.length;
+  }
+
+  static async bulkUpdate(args, fields) {
+    const data = [];
+    for (const arg of args) {
+      const resource = this.API.asResource(arg);
+      const payloadItem = resource.asResourceIdentifier();
+      for (const field of fields) {
+        if (field in resource.attributes) {
+          if (! ('attributes' in payloadItem)) {
+            payloadItem.attributes = {};
+          }
+          payloadItem.attributes[field] = resource.attributes[field];
+        }
+        else if (field in resource.relationships) {
+          if (! ('relationships' in payloadItem)) {
+            payloadItem.relationships = {};
+          }
+          payloadItem.relationships[field] = resource.relationships[field];
+        }
+        else {
+          throw new Error(`${field} is not part of one of the resources`);
+        }
+      }
+      data.push(payloadItem);
+    }
+    const response = await this.API.request(
+      'patch',
+      this.getCollectionUrl(),
+      { data: { data } },
+    );
+    return Collection.fromData(this.API, response.data.data);
+  }
+
   getItemUrl() {
     let url = this.links.self;
     if (! url) {
