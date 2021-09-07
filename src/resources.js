@@ -256,11 +256,11 @@ export class Resource {
   async reload(include = null) {
     // Fetch fresh data from the server for the object.
 
-    const response = await this.constructor.API.request(
-      'get',
-      this.getItemUrl(),
-      include ? { params: { include: include.join(',') } } : {},
-    );
+    const response = await this.constructor.API.request({
+      method: 'get',
+      url: this.getItemUrl(),
+      params: include ? { include: include.join(',') } : null,
+    });
     if (response.status >= 300 && response.status < 400 && response.headers.Location) {
       this._overwrite({
         id: this.id,
@@ -394,11 +394,11 @@ export class Resource {
       ...this.asResourceIdentifier(),
       ...this._generateDataForSaving(fields),
     };
-    const response = await this.constructor.API.request(
-      'patch',
-      this.getItemUrl(),
-      { data: { data } },
-    );
+    const response = await this.constructor.API.request({
+      method: 'patch',
+      url: this.getItemUrl(),
+      data: { data },
+    });
     this._postSave(response);
   }
 
@@ -417,11 +417,11 @@ export class Resource {
       data.id = this.id;
     }
     Object.assign(data, this._generateDataForSaving(fields));
-    const response = await this.constructor.API.request(
-      'post',
-      this.constructor.getCollectionUrl(),
-      { data: { data } },
-    );
+    const response = await this.constructor.API.request({
+      method: 'post',
+      url: this.constructor.getCollectionUrl(),
+      data: { data },
+    });
     this._postSave(response);
   }
 
@@ -502,7 +502,10 @@ export class Resource {
       *     await parent.save(['name']);
       * */
 
-    await this.constructor.API.request('delete', this.getItemUrl());
+    await this.constructor.API.request({
+      method: 'delete',
+      url: this.getItemUrl(),
+    });
     this.id = null;
   }
 
@@ -544,7 +547,7 @@ export class Resource {
       `relationships.${field}.links.self`,
       `/${this.constructor.TYPE}/${this.id}/relationships/${field}`,
     );
-    await this.constructor.API.request(method, url, { data: { data } });
+    await this.constructor.API.request({ method, url, data: { data } });
   }
 
   async _editPluralRelationship(method, field, values) {
@@ -581,11 +584,12 @@ export class Resource {
       }
       data.push(payloadItem);
     }
-    const response = await this.API.request(
-      'post',
-      this.getCollectionUrl(),
-      { data: { data } },
-    );
+    const response = await this.API.request({
+      method: 'post',
+      url: this.getCollectionUrl(),
+      data: { data },
+      bulk: true,
+    });
     return Collection.fromData(this.API, response.data.data);
   }
 
@@ -602,11 +606,12 @@ export class Resource {
         data.push({ type: this.TYPE, id: arg });
       }
     }
-    await this.API.request(
-      'delete',
-      this.getCollectionUrl(),
-      { data: { data } },
-    );
+    await this.API.request({
+      method: 'delete',
+      url: this.getCollectionUrl(),
+      data: { data },
+      bulk: true,
+    });
     return data.length;
   }
 
@@ -634,12 +639,28 @@ export class Resource {
       }
       data.push(payloadItem);
     }
-    const response = await this.API.request(
-      'patch',
-      this.getCollectionUrl(),
-      { data: { data } },
-    );
+    const response = await this.API.request({
+      method: 'patch',
+      url: this.getCollectionUrl(),
+      data: { data },
+      bulk: true,
+    });
     return Collection.fromData(this.API, response.data.data);
+  }
+
+  static async createWithForm(...props) {
+    const response = await this.API.request({
+      method: 'post',
+      url: this.getCollectionUrl(),
+      ...props
+    });
+    const body = response.data;
+    const data = body.data;
+    const included = body.included;
+    if (included) {
+      data.included = included;
+    }
+    return this.API.new(data);
   }
 
   getItemUrl() {

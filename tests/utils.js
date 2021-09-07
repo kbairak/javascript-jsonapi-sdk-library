@@ -25,18 +25,18 @@ export class Parent extends Resource {
 Api.register(Parent);
 export const api = new Api({ auth: 'MYTOKEN' });
 
-export function expectRequestMock(
-  method, url, { data = null, params = null } = {},
-) {
+export function expectRequestMock({ url, bulk = false, ...props }) {
+  const headers = { Authorization: 'Bearer MYTOKEN' };
+  if (bulk) {
+    headers['Content-Type'] = 'application/vnd.api+json;profile="bulk"';
+  }
+  else {
+    headers['Content-Type'] = 'application/vnd.api+json';
+  }
   expect(axios.request).toHaveBeenCalledWith({
-    method,
     url: 'https://api.families.com' + url,
-    headers: {
-      'Content-Type': 'application/vnd.api+json',
-      Authorization: 'Bearer MYTOKEN',
-    },
-    data,
-    params,
+    headers,
     maxRedirects: 0,
+    ...props
   });
 }

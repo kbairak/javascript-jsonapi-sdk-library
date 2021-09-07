@@ -50,7 +50,7 @@ test('JsonApi.request with GET', async () => {
   }
   const api = new Api({ auth: 'MYTOKEN' });
   axios.request.mockResolvedValue(Promise.resolve('mock response'));
-  const actualResponse = await api.request('get', '/path');
+  const actualResponse = await api.request({ method: 'get', url: '/path' });
   expect(actualResponse).toBe('mock response');
   expect(axios.request).toHaveBeenCalledWith({
     method: 'get',
@@ -59,8 +59,6 @@ test('JsonApi.request with GET', async () => {
       'Content-Type': 'application/vnd.api+json',
       Authorization: 'Bearer MYTOKEN',
     },
-    data: null,
-    params: null,
     maxRedirects: 0,
   });
 });
@@ -90,7 +88,7 @@ test('JsonApi.request with error', async () => {
     data: { errors },
   } }));
   try {
-    await api.request('get', 'path');
+    await api.request({ method: 'get', url: 'path' });
   }
   catch (e) {
     errorRaised = true;

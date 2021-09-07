@@ -29,7 +29,7 @@ test('list', async () => {
     ] } }));
     await collection.fetch();
 
-    expectRequestMock('get', '/items');
+    expectRequestMock({ method: 'get', url: '/items', params: null });
     expect(collection).toEqual({
       _API: api,
       _url: '/items',
@@ -80,7 +80,7 @@ test('pagination', async () => {
 async function testParams(items, params) {
   axios.request.mockResolvedValue(Promise.resolve({ data: { data: [] } }));
   await items.fetch();
-  expectRequestMock('get', '/items', { params });
+  expectRequestMock({ method: 'get', url: '/items', params });
   expect(items).toEqual({
     _API: api,
     _url: '/items',
@@ -216,11 +216,11 @@ test('get', async () => {
   }
 
   function after() {
-    expectRequestMock(
-      'get',
-      '/items',
-      { params: { 'filter[name]': 'item 1' } },
-    );
+    expectRequestMock({
+      method: 'get',
+      url: '/items',
+      params: { 'filter[name]': 'item 1' },
+    });
     expect(item).toEqual(
       testItem('1', { name: 'item 1', created: 'yesterday' }),
     );
@@ -276,7 +276,11 @@ test('fetch plural relationship', async () => {
     { type: 'children', id: '2' },
   ] } }));
   await children.fetch();
-  expectRequestMock('get', '/parents/1/children');
+  expectRequestMock({
+    method: 'get',
+    url: '/parents/1/children',
+    params: null,
+  });
   expect(children).toEqual({
     _API: api,
     _url: '/parents/1/children',
@@ -297,11 +301,11 @@ test('fetch plural relationship and apply filters', async () => {
     { type: 'children', id: '2' },
   ] } }));
   await children.fetch();
-  expectRequestMock(
-    'get',
-    '/parents/1/children',
-    { params: { 'filter[a]': 'b' } },
-  );
+  expectRequestMock({
+    method: 'get',
+    url: '/parents/1/children',
+    params: { 'filter[a]': 'b' },
+  });
   expect(children).toEqual({
     _API: api,
     _url: '/parents/1/children',

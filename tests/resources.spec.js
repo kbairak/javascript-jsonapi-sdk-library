@@ -196,7 +196,7 @@ test('reload', async () => {
     relationships: {},
     related: {},
   });
-  expectRequestMock('get', '/items/1');
+  expectRequestMock({ method: 'get', url: '/items/1', params: null });
 });
 
 test('static get', async () => {
@@ -213,7 +213,7 @@ test('static get', async () => {
     relationships: {},
     related: {},
   });
-  expectRequestMock('get', '/items/1');
+  expectRequestMock({ method: 'get', url: '/items/1', params: null });
 });
 
 test('fetch', async () => {
@@ -242,7 +242,7 @@ test('fetch', async () => {
     relationships: { parent: parent.asRelationship() },
     related: { parent },
   });
-  expectRequestMock('get', '/parents/2');
+  expectRequestMock({ method: 'get', url: '/parents/2', params: null });
 });
 
 test('patch', async () => {
@@ -260,16 +260,16 @@ test('patch', async () => {
   }
 
   function after() {
-    expectRequestMock(
-      'patch',
-      '/children/1',
-      { data: { data: {
+    expectRequestMock({
+      method: 'patch',
+      url: '/children/1',
+      data: { data: {
         type: 'children',
         id: '1',
         attributes: { name: 'Bill' },
         relationships: { parent: { data: { type: 'parents', id: '3' } } },
-      } } },
-    );
+      } },
+    });
     expect(child).toEqual({
       id: '1',
       attributes: { name: 'Bill' },
@@ -303,11 +303,11 @@ test('save new', async () => {
     attributes: { name: 'John', created: 'now' },
   } } }));
   await child.save();
-  expectRequestMock(
-    'post',
-    '/children',
-    { data: { data: { type: 'children', attributes: { name: 'John' } } } },
-  );
+  expectRequestMock({
+    method: 'post',
+    url: '/children',
+    data: { data: { type: 'children', attributes: { name: 'John' } } },
+  });
   expect(child).toEqual({
     id: '1',
     attributes: { name: 'John', created: 'now' },
@@ -324,11 +324,11 @@ test('create', async () => {
     attributes: { name: 'John', created: 'now' },
   } } }));
   const child = await api.Child.create({ name: 'John' });
-  expectRequestMock(
-    'post',
-    '/children',
-    { data: { data: { type: 'children', attributes: { name: 'John' } } } },
-  );
+  expectRequestMock({
+    method: 'post',
+    url: '/children',
+    data: { data: { type: 'children', attributes: { name: 'John' } } },
+  });
   expect(child).toEqual({
     id: '1',
     attributes: { name: 'John', created: 'now' },
@@ -343,7 +343,7 @@ test('delete', async () => {
   const child = new api.Child({ id: '1', name: 'John' });
   axios.request.mockResolvedValue(Promise.resolve({}));
   await child.delete();
-  expectRequestMock('delete', '/children/1');
+  expectRequestMock({ method: 'delete', url: '/children/1' });
   expect(child).toEqual({
     id: null,
     attributes: { name: 'John' },
@@ -359,19 +359,19 @@ test('change', async () => {
   axios.request.mockResolvedValue(Promise.resolve({}));
 
   await child.change('parent', new api.Parent({ id: '2' }));
-  expectRequestMock(
-    'patch',
-    '/children/1/relationships/parent',
-    { data: { data: { type: 'parents' , id: '2' } } },
-  );
+  expectRequestMock({
+    method: 'patch',
+    url: '/children/1/relationships/parent',
+    data: { data: { type: 'parents' , id: '2' } },
+  });
   expect(child.related.parent.id).toBe('2');
 
   await child.change('parent', null);
-  expectRequestMock(
-    'patch',
-    '/children/1/relationships/parent',
-    { data: { data: { type: 'parents', id: '2' } } },
-  );
+  expectRequestMock({
+    method: 'patch',
+    url: '/children/1/relationships/parent',
+    data: { data: { type: 'parents', id: '2' } },
+  });
   expect(child.related.parent).toBeNull();
 });
 
@@ -386,19 +386,19 @@ test('edit plural relationships', async () => {
   for (const row of [
     ['add', 'post'], ['reset', 'patch'], ['remove', 'delete'],
   ]) {
-    const [instanceMethod, httpMethod] = row;
+    const [instanceMethod, method] = row;
     await parent[instanceMethod](
       'children',
       [new api.Child({ id: '2' }), new api.Child({ id: '3' })],
     );
-    expectRequestMock(
-      httpMethod,
-      '/parents/1/relationships/children/',
-      { data: { data: [
+    expectRequestMock({
+      method,
+      url: '/parents/1/relationships/children/',
+      data: { data: [
         { type: 'children', id: '2' },
         { type: 'children', id: '3' },
-      ] } },
-    );
+      ] },
+    });
   }
 });
 
@@ -421,7 +421,11 @@ test('get with include', async () => {
     included: [{ type: 'parents', id: '2', attributes: { name: 'Zeus' } }],
   } }));
   const child = await api.Child.get('1', { include: ['parent'] });
-  expectRequestMock('get', '/children/1', { params: { include: 'parent' } });
+  expectRequestMock({
+    method: 'get',
+    url: '/children/1',
+    params: { include: 'parent' },
+  });
   expect(child.get('parent').get('name')).toEqual('Zeus');
 });
 
@@ -512,10 +516,15 @@ test('bulk create', async () => {
     { type: 'items', id: '2', attributes: { name: 'item 2' } },
   ] } }));
   function checks() {
-    expectRequestMock('post', '/items', { data: { data: [
-      { type: 'items', attributes: { name: 'item 1' } },
-      { type: 'items', attributes: { name: 'item 2' } },
-    ] } });
+    expectRequestMock({
+      method: 'post',
+      url: '/items',
+      bulk: true,
+      data: { data: [
+        { type: 'items', attributes: { name: 'item 1' } },
+        { type: 'items', attributes: { name: 'item 2' } },
+      ] },
+    });
     expect(items).toEqual({
       _API: api,
       _url: '',
@@ -547,10 +556,12 @@ test('bulk delete', async () => {
   axios.request.mockResolvedValue(Promise.resolve({}));
   function checks() {
     expect(result).toBe(2);
-    expectRequestMock('delete', '/items', { data: { data: [
-      { type: 'items', id: '1' },
-      { type: 'items', id: '2' },
-    ] } });
+    expectRequestMock({
+      method: 'delete',
+      url: '/items',
+      bulk: true,
+      data: { data: [{ type: 'items', id: '1' }, { type: 'items', id: '2' }] },
+    });
   }
 
   result = await api.Item.bulkDelete(['1', '2']);
@@ -619,10 +630,15 @@ test('bulk update', async () => {
     ],
     ['name'],
   );
-  expectRequestMock('patch', '/children', { data: { data: [
-    { type: 'children', id: '1', attributes: { name: 'Hercules' } },
-    { type: 'children', id: '2', attributes: { name: 'Achilles' } },
-  ] } });
+  expectRequestMock({
+    method: 'patch',
+    url: '/children',
+    bulk: true,
+    data: { data: [
+      { type: 'children', id: '1', attributes: { name: 'Hercules' } },
+      { type: 'children', id: '2', attributes: { name: 'Achilles' } },
+    ] },
+  });
   checkCollection();
 
   children = await api.Child.bulkUpdate(
@@ -632,17 +648,22 @@ test('bulk update', async () => {
     ],
     ['parent'],
   );
-  expectRequestMock('patch', '/children', { data: { data: [
-    {
-      type: 'children',
-      id: '1',
-      relationships: { parent: { data: { type: 'parents', id: '1' } } },
-    },
-    {
-      type: 'children',
-      id: '2',
-      relationships: { parent: { data: { type: 'parents', id: '2' } } },
-    },
-  ] } });
+  expectRequestMock({
+    method: 'patch',
+    url: '/children',
+    bulk: true,
+    data: { data: [
+      {
+        type: 'children',
+        id: '1',
+        relationships: { parent: { data: { type: 'parents', id: '1' } } },
+      },
+      {
+        type: 'children',
+        id: '2',
+        relationships: { parent: { data: { type: 'parents', id: '2' } } },
+      },
+    ] },
+  });
   checkCollection();
 });

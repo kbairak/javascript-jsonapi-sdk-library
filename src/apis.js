@@ -48,23 +48,29 @@ export class JsonApi {
     Object.defineProperty(this.prototype, parentCls.TYPE, { get });
   }
 
-  async request(method, url, { data = null, params = null } = {}) {
+  async request({
+    url, bulk = false, headers = {}, maxRedirects = 0, ...props
+  }) {
     if (url[0] == '/') {
       url = this.host + url;
     }
-    const headers = {
-      'Content-Type': 'application/vnd.api+json',
-      ...this.auth(),
-    };
+    const actualHeaders = this.auth();
+    if (bulk) {
+      actualHeaders['Content-Type'] = (
+        'application/vnd.api+json;profile="bulk"'
+      );
+    }
+    else {
+      actualHeaders['Content-Type'] = 'application/vnd.api+json';
+    }
+    Object.assign(actualHeaders, headers);
     let response;
     try {
       response = await axios.request({
-        method,
         url,
-        headers,
-        data,
-        params,
-        maxRedirects: 0,
+        headers: actualHeaders,
+        maxRedirects,
+        ...props
       });
     }
     catch (e) {

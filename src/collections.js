@@ -18,11 +18,11 @@ export class Collection {
       return;
     }
 
-    const response = await this._API.request(
-      'get',
-      this._url,
-      { params: this._params },
-    );
+    const response = await this._API.request({
+      method: 'get',
+      url: this._url,
+      params: this._params,
+    });
 
     const includedMap = {};
     if ('included' in response.data) {

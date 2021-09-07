@@ -956,6 +956,6 @@ TODO
 - [x] plural relationship editing
 - [x] bulk actions
 - [x] proper exceptions
-- [ ] create-with-form (aka more fine-grained control into axios API)
+- [x] create-with-form (aka more fine-grained control into axios API)
 - [x] redirects
 - [x] generators?
