@@ -1,3 +1,4 @@
 module.exports = {
   presets: [['@babel/preset-env', { corejs: '3.17', useBuiltIns: 'usage' } ]],
+  sourceMaps: 'both',
 };

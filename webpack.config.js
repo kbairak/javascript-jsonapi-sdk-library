@@ -13,8 +13,9 @@ module.exports = {
       {
         test: /\.js$/,
         exclude: /(node_modules|bower_components)/,
-        use: { loader: 'babel-loader' },
+        use: ['source-map-loader', 'babel-loader'],
       }
     ],
   },
+  devtool: 'source-map',
 };

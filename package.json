@@ -1,18 +1,18 @@
 {
   "name": "javascript-jsonapi-sdk-library",
-  "version": "0.0.10",
+  "version": "0.0.12",
   "author": "Konstantinos Bairaktaris",
   "description": "{json:api} SDK library",
-  "main": "bundle/jsonapi.js",
-  "module": "bundle/jsonapi.js",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
   "browser": "bundle/jsonapi.js",
-  "node": "bundle/jsonapi.js",
+  "node": "dist/index.js",
   "scripts": {
     "eslint": "eslint --fix src",
     "eslint_nofix": "eslint src",
     "test": "jest",
     "watchtest": "jest --watchAll",
-    "nodebuild": "babel src -d dist",
+    "nodebuild": "babel -d dist -s both src",
     "browserbuild": "webpack",
     "build": "npm run nodebuild && npm run browserbuild"
   },
@@ -41,6 +41,7 @@
     "babel-loader": "^8.2.2",
     "eslint": "^7.32.0",
     "jest": "^27.0.6",
+    "source-map-loader": "^3.0.0",
     "webpack": "^5.51.1",
     "webpack-cli": "^4.8.0"
   },
