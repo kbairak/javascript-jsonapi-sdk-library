@@ -55,8 +55,8 @@ export class Collection {
     this.previous = (response.data.links || {}).previous || null;
   }
 
-  static fromData(API, data) {
-    const result = new this(API, '');
+  static fromData(API, data, url = '') {
+    const result = new this(API, url);
     result.data = data;
     return result;
   }

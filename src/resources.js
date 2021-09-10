@@ -84,9 +84,38 @@ export class Resource {
     for (const key in props) {
       const value = props[key];
       if (
-        isResource(value) || isResourceIdentifier(value) ||
-        (hasData(value) && isResourceIdentifier(value.data)) ||
-        hasLinks(value)
+        // parent: { type: 'parents', id: '1' }
+        isResourceIdentifier(value) ||
+
+        // parent: new Parent({ id: '1' })
+        isResource(value) ||
+
+        (isObject(value) && (
+
+          // parent: { links: { related: 'related' } }
+          hasLinks(value) ||
+
+          (hasData(value) && (
+
+            // parent: { data: { type: 'parents', id: '1' } }
+            isResourceIdentifier(value.data) ||
+
+            // parent: { data: new Parent({ id: '1' }) }
+            isResource(value.data) ||
+
+            // children: { data: [{ type: 'children', id: '1' },
+            //                    new Child({ id: '1' })] }
+            _.every(value.data, (item) => (
+              isResourceIdentifier(item) || isResource(item)
+            ))
+          ))
+        )) ||
+
+        // children: [{ type: 'children', id: '1' }, new Child({ id: '1' })]
+        isList(value) && value.length > 0 && _.every(value, (item) => (
+          isResourceIdentifier(item) ||
+          isResource(item)
+        ))
       ) {
         relationships[key] = value;
       }
@@ -101,136 +130,100 @@ export class Resource {
     this.redirect = redirect;
 
     [this.relationships, this.related] = [{}, {}];
-    for (const key in relationships) {
-      const value = relationships[key];
-      this._setRelationship(key, value);
-      const relationship = this.relationships[key];
-      if (isNull(relationship) || hasData(relationship)) {
-        this.setRelated(key, value);
-      }
-    }
-
     const includedMap = {};
     for (const includedItem of included) {
       const key = `${includedItem.type}__${includedItem.id}`;
       includedMap[key] = this.constructor.API.asResource(includedItem);
     }
-    for (const relationshipName in this.relationships) {
+    for (const key in relationships) {
+      const value = relationships[key];
+      this._setRelated(key, value, includedMap);
+    }
+  }
+
+  _setRelated(relationshipName, value, includedMap = null) {
+    if (! includedMap) {
+      includedMap = {};
+    }
+    if (! value) {
+      this.relationships[relationshipName] = null;
+      this.related[relationshipName] = null;
+    }
+    else if (
+      isList(value) ||
+      (isObject(value) && isList(value.data)) ||
+      (isObject(value) && hasLinks(value) && ! hasData(value))
+    ) {
+      this.relationships[relationshipName] = {};
       const relationship = this.relationships[relationshipName];
-      if (isNull(relationship) || ! hasData(relationship)) {
-        continue;
+      if (isObject(value) && hasLinks(value)) {
+        relationship.links = value.links;
       }
-      if (! isList(relationship.data)) { // Singular
-        const key = `${relationship.data.type}__${relationship.data.id}`;
-        if (key in includedMap) {
-          this.setRelated(relationshipName, includedMap[key]);
-        }
-      }
-      else {
-        const related = [];
-        for (const item of relationship.data) {
-          const key = `${item.type}__${item.id}`;
-          if (key in includedMap) {
-            related.push(includedMap[key]);
-          }
-          else {
-            related.push(item);
-          }
-        }
-        this.setRelated(relationshipName, related);
-      }
-    }
-  }
-
-  _setRelationship(key, value) {
-    // Set 'value' as 'key' relationship. For value we accept:
-    //
-    // - A Resource object
-    // - A relationship (a dict with either 'data', 'links' or both)
-    // - A resource identifier (a dict with 'type' and 'id')
-    // - A list of a combination of the above (TODO)
-    // - A dict with a 'data' field which is a list of a combination of
-    //   the above
-    // - null
-    //
-    // Regardless, in the end `this.relationships[key]` will resemble an API
-    // response's relationships.
-    
-    if (isResource(value)) {
-      this.relationships[key] = value.asRelationship();
-    }
-    // TODO: Plural relationships
-    else {
-      if (isObject(value)) {
-        value = Object.assign({}, value);
-      }
-      if (! isNull(value) && isResourceIdentifier(value)) {
-        value = { data: value };
-      }
-      if (isNull(value) || hasData(value) || hasLinks(value)) {
-        this.relationships[key] = value;
-      }
-      else {
-        throw new Error(`Invalid value '${value}' for relationship '${key}'`);
-      }
-    }
-  }
-
-  setRelated(key, value) {
-    // Set 'value' as 'key' relationship's value. Works only with singular
-    // relationships. For value we accept:
-    //
-    // - A Resource object
-    // - A JSON representation of a Resource object
-    // - A full API response of a Resource object
-    // - A relationship (a dict with a 'data' field)
-    // - A resource identifier (a dict with 'type' and 'id')
-    // - A list of a combination of the above (TODO)
-    // - A dict with a 'data' field with a list of a combination of the
-    //   above as value
-    // - null
-    //
-    // Regardless, in the end `this.related[key]` will be a Resource instance
-    // or null.
-    
-    if (! (key in this.relationships)) {
-      throw new Error(
-        `Cannot change relationship ${key} because it is not an existing ` +
-        'relationship'
-      );
-    }
-    const relationship = this.relationships[key];
-    if (isList(value) || (hasData(value) && isList(value.data))) {
       if (hasData(value)) {
         value = value.data;
       }
-      this.related[key] = new Collection(
-        this.constructor.API,
-        relationship.links.related,
-      );
-      this.related[key].data = [];
-      for (const item of value) {
-        this.related[key].data.push(this.constructor.API.asResource(item));
+      if (isList(value)) {
+        let datas = [], resources = [];
+        for (const item of value) {
+          let data, resource;
+          if (isResource(item)) {
+            resource = item;
+            data = item.asResourceIdentifier();
+          }
+          else {
+            data = item;
+            resource = this.constructor.API.new(data);
+          }
+          datas.push(data);
+          const key = `${data.type}__${data.id}`;
+          if (key in includedMap) {
+            resources.push(includedMap[key]);
+          }
+          else {
+            resources.push(resource);
+          }
+        }
+        relationship.data = datas;
+        let url = null;
+        if ('links' in relationship && 'related' in relationship.links) {
+          url = relationship.links.related;
+        }
+        this.related[relationshipName] = Collection.fromData(
+          this.constructor.API, resources, url,
+        );
       }
     }
     else {
-      value = this.constructor.API.asResource(value);
-      const nullToNotNull = isNull(relationship) && ! isNull(value);
-      const notNullToNull = ! isNull(relationship) && isNull(value);
-      const dataChanged = (
-        ! isNull(relationship) &&
-        ! isNull(value) &&
-        ! _.isEqual(relationship.data, value.asResourceIdentifier())
-      );
-      if (nullToNotNull || notNullToNull || dataChanged) {
-        if (! value) {
-          this.relationships[key] = null;
+      let resource, data, links = null;
+      if (isObject(value)) {
+        if (hasData(value)) {
+          data = value.data;
+          if ('links' in value) {
+            links = value.links;
+          }
         }
         else {
-          this.relationships[key] = value.asRelationship();
+          data = value;
         }
+        resource = this.constructor.API.new(data);
       }
-      this.related[key] = value;
+      else if (isResource(value)) {
+        resource = value;
+        data = resource.asResourceIdentifier();
+      }
+      else {
+        throw new Error(`Cannot set relationship '${relationshipName}'`);
+      }
+      const key = `${data.type}__${data.id}`;
+      if (key in includedMap) {
+        resource = includedMap[key];
+      }
+
+      this.relationships[relationshipName] = { data };
+      if (links) {
+        this.relationships[relationshipName].links = links;
+      }
+      this.related[relationshipName] = resource;
     }
   }
 
@@ -245,7 +238,7 @@ export class Resource {
 
   set(key, value) {
     if (key in this.relationships) {
-      this.setRelated(key, value);
+      this._setRelated(key, value);
       this.relationships[key] = this.related[key].asRelationship();
     }
     else {

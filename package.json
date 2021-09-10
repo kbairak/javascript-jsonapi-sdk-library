@@ -1,6 +1,6 @@
 {
   "name": "javascript-jsonapi-sdk-library",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "author": "Konstantinos Bairaktaris",
   "description": "{json:api} SDK library",
   "main": "bundle/jsonapi.js",

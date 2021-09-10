@@ -35,7 +35,7 @@ export function isNull(value) {
 }
 
 export function isObject(value) {
-  return _.isObject(value);
+  return _.isPlainObject(value);
 }
 
 export function isResource(value) {

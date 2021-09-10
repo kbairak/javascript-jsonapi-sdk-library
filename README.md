@@ -959,3 +959,6 @@ TODO
 - [x] create-with-form (aka more fine-grained control into axios API)
 - [x] redirects
 - [x] generators?
+- [ ] Clean up `_setRelationship` and `setRelated` methods
+- [ ] Figure out how exported library works in node vs browser vs webpack vs
+      minified bundle
