@@ -944,10 +944,6 @@ for await (const child of children_collection.all()) {
 await familyApi.Child.bulkDelete(allChildren);
 ```
 
-### Form uploads, redirects
-
-TODO
-
 ## TODOS:
 
 - [x] README
@@ -959,6 +955,6 @@ TODO
 - [x] create-with-form (aka more fine-grained control into axios API)
 - [x] redirects
 - [x] generators?
-- [ ] Clean up `_setRelationship` and `setRelated` methods
+- [x] Clean up `_setRelationship` and `setRelated` methods
 - [ ] Figure out how exported library works in node vs browser vs webpack vs
       minified bundle

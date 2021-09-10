@@ -1773,3 +1773,22 @@ test('_setRelated plural relationship links and data fields with resource object
     } },
   });
 });
+
+test('reloading does not overwrite pre-fetched relationship (singular)', () => {
+  const parent = new api.Parent({ id: '2', name: 'the parent' });
+  const child = new api.Child({ id: '1', parent });
+  child._overwrite({ id: '2', parent: parent.asResourceIdentifier() });
+  expect(child.get('parent').get('name')).toEqual('the parent');
+});
+
+test('reloading does not overwrite pre-fetched relationship (plural)', () => {
+  const child1 = new api.Child({ id: '1', name: 'child 1' });
+  const child2 = new api.Child({ id: '2', name: 'child 2' });
+  const parent = new api.Parent({ id: '3', children: [child1, child2] });
+  parent._overwrite({
+    id: '3',
+    children: [child1.asResourceIdentifier(), child2.asResourceIdentifier()],
+  });
+  expect(parent.get('children').data[0].get('name')).toEqual('child 1');
+  expect(parent.get('children').data[1].get('name')).toEqual('child 2');
+});

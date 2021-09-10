@@ -129,7 +129,14 @@ export class Resource {
     this.links = links;
     this.redirect = redirect;
 
-    [this.relationships, this.related] = [{}, {}];
+    this.relationships = _.pickBy(
+      this.relationships,
+      (value, key) => key in relationships,
+    );
+    this.related = _.pickBy(
+      this.related,
+      (value, key) => key in relationships,
+    );
     const includedMap = {};
     for (const includedItem of included) {
       const key = `${includedItem.type}__${includedItem.id}`;
@@ -165,15 +172,8 @@ export class Resource {
       if (isList(value)) {
         let datas = [], resources = [];
         for (const item of value) {
-          let data, resource;
-          if (isResource(item)) {
-            resource = item;
-            data = item.asResourceIdentifier();
-          }
-          else {
-            data = item;
-            resource = this.constructor.API.new(data);
-          }
+          const resource = this.constructor.API.asResource(item);
+          const data = resource.asResourceIdentifier();
           datas.push(data);
           const key = `${data.type}__${data.id}`;
           if (key in includedMap) {
@@ -183,14 +183,30 @@ export class Resource {
             resources.push(resource);
           }
         }
+
         relationship.data = datas;
         let url = null;
         if ('links' in relationship && 'related' in relationship.links) {
           url = relationship.links.related;
         }
-        this.related[relationshipName] = Collection.fromData(
-          this.constructor.API, resources, url,
-        );
+
+        if (
+          ! this.related[relationshipName] ||
+          ! this.related[relationshipName].data ||
+          this.related[relationshipName].data.length !== resources.length ||
+          _.some(
+            _.zip(this.related[relationshipName].data, resources),
+            ([previous, next]) => (
+              previous.id !== next.id ||
+              _.size(next.attributes) > 0 ||
+              _.size(next.relationships) > 0
+            ),
+          )
+        ) {
+          this.related[relationshipName] = Collection.fromData(
+            this.constructor.API, resources, url,
+          );
+        }
       }
     }
     else {
@@ -223,7 +239,14 @@ export class Resource {
       if (links) {
         this.relationships[relationshipName].links = links;
       }
-      this.related[relationshipName] = resource;
+
+      if (
+        (this.related[relationshipName] || {}).id !== resource.id ||
+        _.size(resource.attributes) > 0 ||
+        _.size(resource.relationships) > 0
+      ) {
+        this.related[relationshipName] = resource;
+      }
     }
   }
 
