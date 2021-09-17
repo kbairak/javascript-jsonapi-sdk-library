@@ -6,16 +6,21 @@ module.exports = {
   output: {
     filename: 'jsonapi.js',
     path: path.resolve(__dirname, 'bundle'),
-    library: { name: 'jsonapi', type: 'umd' },
+    library: {
+      name: 'jsonapi',
+      type: 'umd',
+    },
+    globalObject: 'this',
+    clean: true,
   },
   module: {
     rules: [
       {
         test: /\.js$/,
         exclude: /(node_modules|bower_components)/,
-        use: ['source-map-loader', 'babel-loader'],
+        use: 'babel-loader',
       }
     ],
   },
-  devtool: 'eval-source-map',
+  devtool: 'source-map',
 };
