@@ -1,9 +1,9 @@
-import axios from 'axios';
 import _ from 'lodash';
+import axios from 'axios';
 
-import { Resource } from './resources';
-import { JsonApiException } from './errors';
 import { isNull, isResource } from './utils';
+import { JsonApiException } from './errors';
+import { Resource } from './resources';
 
 export class JsonApi {
   constructor(props = {}) {
@@ -21,8 +21,11 @@ export class JsonApi {
     if (auth) {
       if (_.isFunction(auth)) {
         this.auth = auth;
-      } else {
-        this.auth = () => { return { Authorization: `Bearer ${auth}` }; };
+      }
+      else {
+        this.auth = () => {
+          return { Authorization: `Bearer ${auth}` };
+        };
       }
     }
   }
@@ -48,10 +51,12 @@ export class JsonApi {
     Object.defineProperty(this.prototype, parentCls.TYPE, { get });
   }
 
-  async request({
-    url, bulk = false, headers = {}, maxRedirects = 0, ...props
-  }) {
-    if (url[0] == '/') {
+  async request({ url,
+                  bulk = false,
+                  headers = {},
+                  maxRedirects = 0,
+                  ...props }) {
+    if (url[0] === '/') {
       url = this.host + url;
     }
     const actualHeaders = this.auth();
@@ -66,12 +71,10 @@ export class JsonApi {
     Object.assign(actualHeaders, headers);
     let response;
     try {
-      response = await axios.request({
-        url,
-        headers: actualHeaders,
-        maxRedirects,
-        ...props
-      });
+      response = await axios.request({ url,
+                                       headers: actualHeaders,
+                                       maxRedirects,
+                                       ...props });
     }
     catch (e) {
       const errors = _.get(e.response, 'data.errors');
@@ -95,6 +98,7 @@ export class JsonApi {
     if (! cls) {
       this.registry[type] = class extends Resource {
         static TYPE = type;
+
         static API = jsonApiInstance;
       };
     }
@@ -104,7 +108,7 @@ export class JsonApi {
   asResource(value) {
     // Little convenience function when we don't know if we are dealing with a
     // Resource instance or a dict describing a relationship. Will use the
-    // appropriate Resource subclass.
+    // Appropriate Resource subclass.
 
     if (isNull(value) || isResource(value)) {
       return value;

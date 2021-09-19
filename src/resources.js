@@ -1,11 +1,9 @@
 import _ from 'lodash';
 import axios from 'axios';
 
+import { hasData, hasLinks, isList, isNull, isObject, isPluralFetched,
+         isResource, isResourceIdentifier, isSingularFetched } from './utils';
 import { Collection } from './collections';
-import {
-  hasData, hasLinks, isSingularFetched, isList, isNull, isObject,
-  isPluralFetched, isResource, isResourceIdentifier,
-} from './utils';
 
 export class Resource {
   /*  Subclass like this:
@@ -36,16 +34,14 @@ export class Resource {
     this._overwrite(data);
   }
 
-  _overwrite({
-    id = null,
-    attributes = {},
-    relationships = {},
-    links = {},
-    redirect = null,
-    type = null,
-    included = [],
-    ...props
-  }) {
+  _overwrite({ id = null,
+               attributes = {},
+               relationships = {},
+               links = {},
+               redirect = null,
+               type = null,
+               included = [],
+               ...props }) {
     /*  Write to the basic attributes of the resource. The input should
       * resemble the body of the 'data' field of an {json:api} response. Used
       * by the constructor, 'reload' and 'save'.
@@ -75,43 +71,42 @@ export class Resource {
       *     new Child({ name: 'Hercules', parent });
       */
 
-    if (type && type != this.constructor.TYPE) {
+    if (type && type !== this.constructor.TYPE) {
       throw new Error(
-        `Received type '${type}', expected ${this.constructor.TYPE}`
+        `Received type '${type}', expected ${this.constructor.TYPE}`,
       );
     }
 
     for (const key in props) {
       const value = props[key];
       if (
-        // parent: { type: 'parents', id: '1' }
+        // Parent: { type: 'parents', id: '1' }
         isResourceIdentifier(value) ||
 
-        // parent: new Parent({ id: '1' })
+        // Parent: new Parent({ id: '1' })
         isResource(value) ||
 
         (isObject(value) && (
 
-          // parent: { links: { related: 'related' } }
+          // Parent: { links: { related: 'related' } }
           hasLinks(value) ||
 
           (hasData(value) && (
 
-            // parent: { data: { type: 'parents', id: '1' } }
+            // Parent: { data: { type: 'parents', id: '1' } }
             isResourceIdentifier(value.data) ||
 
-            // parent: { data: new Parent({ id: '1' }) }
+            // Parent: { data: new Parent({ id: '1' }) }
             isResource(value.data) ||
 
-            // children: { data: [{ type: 'children', id: '1' },
-            //                    new Child({ id: '1' })] }
-            _.every(value.data, (item) => (
-              isResourceIdentifier(item) || isResource(item)
-            ))
+            // Children: { data: [{ type: 'children', id: '1' },
+            //                    New Child({ id: '1' })] }
+            _.every(value.data, (item) => (isResourceIdentifier(item) ||
+                                           isResource(item)))
           ))
         )) ||
 
-        // children: [{ type: 'children', id: '1' }, new Child({ id: '1' })]
+        // Children: [{ type: 'children', id: '1' }, new Child({ id: '1' })]
         isList(value) && value.length > 0 && _.every(value, (item) => (
           isResourceIdentifier(item) ||
           isResource(item)
@@ -129,14 +124,10 @@ export class Resource {
     this.links = links;
     this.redirect = redirect;
 
-    this.relationships = _.pickBy(
-      this.relationships,
-      (value, key) => key in relationships,
-    );
-    this.related = _.pickBy(
-      this.related,
-      (value, key) => key in relationships,
-    );
+    this.relationships = _.pickBy(this.relationships,
+                                  (value, key) => key in relationships);
+    this.related = _.pickBy(this.related,
+                            (value, key) => key in relationships);
     const includedMap = {};
     for (const includedItem of included) {
       const key = `${includedItem.type}__${includedItem.id}`;
@@ -196,11 +187,9 @@ export class Resource {
           this.related[relationshipName].data.length !== resources.length ||
           _.some(
             _.zip(this.related[relationshipName].data, resources),
-            ([previous, next]) => (
-              previous.id !== next.id ||
-              _.size(next.attributes) > 0 ||
-              _.size(next.relationships) > 0
-            ),
+            ([ previous, next ]) => (previous.id !== next.id ||
+                                     _.size(next.attributes) > 0 ||
+                                     _.size(next.relationships) > 0),
           )
         ) {
           this.related[relationshipName] = Collection.fromData(
@@ -277,11 +266,13 @@ export class Resource {
       url: this.getItemUrl(),
       params: include ? { include: include.join(',') } : null,
     });
-    if (response.status >= 300 && response.status < 400 && response.headers.Location) {
+    if (response.status >= 300 &&
+        response.status < 400 &&
+        response.headers.Location) {
       this._overwrite({
         id: this.id,
         attributes: this.attributes,
-        relationships: Object.assign({}, this.relationships, this.related),
+        relationships: { ...this.relationships, ...this.related },
         links: this.links,
         redirect: response.headers.Location,
       });
@@ -318,7 +309,7 @@ export class Resource {
 
     if (! (relationshipName in this.relationships)) {
       throw new Error(
-        `Resource does not have relationship '${relationshipName}'`
+        `Resource does not have relationship '${relationshipName}'`,
       );
     }
     const relationship = this.relationships[relationshipName];
@@ -326,7 +317,6 @@ export class Resource {
       return null;
     }
     const related = this.related[relationshipName];
-    // TODO: isPluralFetched
     if ((isSingularFetched(related) || isPluralFetched(related)) && ! force) {
       return related;
     }
@@ -339,15 +329,13 @@ export class Resource {
       if (! url) {
         throw new Error(`Cannot fetch ${relationshipName}, no 'related' link`);
       }
-      this.related[relationshipName] = new Collection(
-        this.constructor.API,
-        url,
-      );
+      this.related[relationshipName] = new Collection(this.constructor.API,
+                                                      url);
       return this.related[relationshipName];
     }
   }
 
-  async save() {
+  async save(firstArg = null, secondArg = null) {
     /*  Save the resource to the server. If the resource has no 'id', a POST
       * request will be saved, otherwise a PATCH request will. The resource's
       * fields will then be populated by the server's response, including a
@@ -355,8 +343,8 @@ export class Resource {
       *
       * - The first argument, if present, lists the resource's fields that will
       *   be sent.
-      * - The last argument, if present, should be an object with key-value pairs
-      *   that will be set on the resource right before saving.
+      * - The last argument, if present, should be an object with key-value
+      *   pairs that will be set on the resource right before saving.
       * - If no fields are specified by either argument, all the fields in
       *   'this.attributes' and 'this.relationships' will be sent
       *
@@ -369,16 +357,16 @@ export class Resource {
       *     await parent.save({ age: 54 });
       */
     let fields = [], props = {};
-    if (arguments.length == 2) {
-      fields = arguments[0];
-      props = arguments[1];
+    if (firstArg && secondArg) {
+      fields = firstArg;
+      props = secondArg;
     }
-    else if (arguments.length == 1) {
-      if (_.isArray(arguments[0])) {
-        fields = arguments[0];
+    else if (firstArg) {
+      if (_.isArray(firstArg)) {
+        fields = firstArg;
       }
-      else if (_.isObject(arguments[0])) {
-        props = arguments[0];
+      else if (_.isObject(firstArg)) {
+        props = firstArg;
       }
     }
 
@@ -397,7 +385,7 @@ export class Resource {
   }
 
   async _saveExisting(fields = []) {
-    if (fields.length == 0) {
+    if (fields.length === 0) {
       for (const field in this.attributes) {
         fields.push(field);
       }
@@ -406,10 +394,8 @@ export class Resource {
       }
     }
 
-    const data = {
-      ...this.asResourceIdentifier(),
-      ...this._generateDataForSaving(fields),
-    };
+    const data = { ...this.asResourceIdentifier(),
+                   ...this._generateDataForSaving(fields) };
     const response = await this.constructor.API.request({
       method: 'patch',
       url: this.getItemUrl(),
@@ -419,7 +405,7 @@ export class Resource {
   }
 
   async _saveNew(fields = []) {
-    if (fields.length == 0) {
+    if (fields.length === 0) {
       for (const field in this.attributes) {
         fields.push(field);
       }
@@ -455,7 +441,7 @@ export class Resource {
           result.relationships = {};
         }
         result.relationships[field] = this.constructor.API.asResource(
-          this.relationships[field]
+          this.relationships[field],
         ).asRelationship();
       }
       else {
@@ -467,15 +453,15 @@ export class Resource {
 
   _postSave(response) {
     const data = response.data.data;
-    let related = Object.assign({}, this.related);
+    let related = { ...this.related };
     for (const relationshipName in related) {
       const relatedInstance = related[relationshipName];
       const oldId = relatedInstance.id;
       const newId = data.relationships[relationshipName].data.id;
-      if (oldId != newId) {
+      if (oldId !== newId) {
         if (newId) {
           related[relationshipName] = this.constructor.API.new(
-            data.relationships[relationshipName]
+            data.relationships[relationshipName],
           );
         }
         else {
@@ -518,10 +504,8 @@ export class Resource {
       *     await parent.save(['name']);
       * */
 
-    await this.constructor.API.request({
-      method: 'delete',
-      url: this.getItemUrl(),
-    });
+    await this.constructor.API.request({ method: 'delete',
+                                         url: this.getItemUrl() });
     this.id = null;
   }
 
@@ -531,16 +515,14 @@ export class Resource {
     }
 
     value = value && this.constructor.API.asResource(value);
-    await this._editRelationship(
-      'patch',
-      field,
-      value && value.asResourceIdentifier(),
-    );
+    await this._editRelationship('patch',
+                                 field,
+                                 value && value.asResourceIdentifier());
     if (! this.relationships[field]) {
       this.relationships[field] = {};
     }
     this.relationships[field].data = value && value.asResourceIdentifier();
-    if ((this.related[field] || {}).id != (value || {}).id) {
+    if ((this.related[field] || {}).id !== (value || {}).id) {
       this.related[field] = value;
     }
   }
@@ -568,7 +550,7 @@ export class Resource {
 
   async _editPluralRelationship(method, field, values) {
     const payload = values.map(
-      (item) => this.constructor.API.asResource(item).asResourceIdentifier()
+      (item) => this.constructor.API.asResource(item).asResourceIdentifier(),
     );
     await this._editRelationship(method, field, payload);
   }
@@ -600,12 +582,10 @@ export class Resource {
       }
       data.push(payloadItem);
     }
-    const response = await this.API.request({
-      method: 'post',
-      url: this.getCollectionUrl(),
-      data: { data },
-      bulk: true,
-    });
+    const response = await this.API.request({ method: 'post',
+                                              url: this.getCollectionUrl(),
+                                              data: { data },
+                                              bulk: true });
     return Collection.fromData(this.API, response.data.data);
   }
 
@@ -622,12 +602,10 @@ export class Resource {
         data.push({ type: this.TYPE, id: arg });
       }
     }
-    await this.API.request({
-      method: 'delete',
-      url: this.getCollectionUrl(),
-      data: { data },
-      bulk: true,
-    });
+    await this.API.request({ method: 'delete',
+                             url: this.getCollectionUrl(),
+                             data: { data },
+                             bulk: true });
     return data.length;
   }
 
@@ -655,21 +633,17 @@ export class Resource {
       }
       data.push(payloadItem);
     }
-    const response = await this.API.request({
-      method: 'patch',
-      url: this.getCollectionUrl(),
-      data: { data },
-      bulk: true,
-    });
+    const response = await this.API.request({ method: 'patch',
+                                              url: this.getCollectionUrl(),
+                                              data: { data },
+                                              bulk: true });
     return Collection.fromData(this.API, response.data.data);
   }
 
   static async createWithForm(...props) {
-    const response = await this.API.request({
-      method: 'post',
-      url: this.getCollectionUrl(),
-      ...props
-    });
+    const response = await this.API.request({ method: 'post',
+                                              url: this.getCollectionUrl(),
+                                              ...props });
     const body = response.data;
     const data = body.data;
     const included = body.included;
@@ -700,7 +674,7 @@ export class Resource {
   }
 }
 
-for (const listMethod of ['filter', 'page', 'include', 'sort', 'fields']) {
+for (const listMethod of [ 'filter', 'page', 'include', 'sort', 'fields' ]) {
   Resource[listMethod] = function(...args) {
     return this.list()[listMethod](...args);
   };

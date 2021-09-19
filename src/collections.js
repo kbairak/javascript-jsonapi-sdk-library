@@ -1,8 +1,8 @@
 import _ from 'lodash';
 
-import { Resource } from './resources';
-import { isNull, hasData } from './utils';
 import { DoesNotExist, MultipleObjectsReturned } from './errors';
+import { hasData, isNull } from './utils';
+import { Resource } from './resources';
 
 export class Collection {
   constructor(API, url, params = null) {
@@ -74,7 +74,7 @@ export class Collection {
   }
 
   extra(params) {
-    const newParams = Object.assign({}, this._params || {}, params);
+    const newParams = { ...this._params || {}, ...params };
     return new this.constructor(this._API, this._url, newParams);
   }
 
@@ -83,7 +83,7 @@ export class Collection {
     for (const key in filters) {
       let value = filters[key];
       const parts = key.split('__');
-      const filterKey = [`filter[${parts[0]}]`];
+      const filterKey = [ `filter[${parts[0]}]` ];
       for (let i = 1; i < parts.length; i++) {
         const part = parts[i];
         filterKey.push(`[${part}]`);
@@ -125,7 +125,7 @@ export class Collection {
   async get(filters = {}) {
     const qs = this.filter(filters);
     await qs.fetch();
-    if (qs.data.length == 0) {
+    if (qs.data.length === 0) {
       throw new DoesNotExist();
     }
     else if (qs.data.length > 1) {
