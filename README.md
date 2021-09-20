@@ -86,6 +86,45 @@ every type you intend to encounter, because the library will use the API
 instance's registry to resolve the appropriate subclass for the items included
 in the API's responses.
 
+### Non-ES Javascript
+
+If you are running a version of Javascript that doesn't support classes, for
+example an old browser, you can use the `extend` static methods of `JsonApi`
+and `Resource` to achieve the same results:
+
+```html
+<html>
+  <meta charset="UTF-8">
+  <body>
+    <script src="jsonapi.js"></script>
+    <script>
+      var JsonApi = jsonapi.JsonApi;
+      var Resource = jsonapi.Resource;
+
+      var FamilyApi = JsonApi.extend({
+        HOST: 'https://api.families.com',
+      });
+
+      var Parent = Resource.extend({
+        name: 'Parent',
+        TYPE: 'parents',
+      });
+
+      FamilyApi.register(Parent);
+
+      var familyApi = new FamilyApi({
+        auth: 'MYTOKEN',
+      });
+
+      var parents = familyApi.Parent.list();
+      parents.fetch().then(function() {
+        console.log({ parents });
+      })
+    </script>
+  </body>
+</html>
+```
+
 ### Global _API connection instances_
 
 You can configure an already created _API connection instance_ by calling the
@@ -956,5 +995,6 @@ await familyApi.Child.bulkDelete(allChildren);
 - [x] redirects
 - [x] generators?
 - [x] Clean up `_setRelationship` and `setRelated` methods
-- [ ] Figure out how exported library works in node vs browser vs webpack vs
-      minified bundle
+- [x] Figure out how exported library works in node vs browser vs webpack vs
+      minified bundle (CRA doesn't import source maps from dependencies yet)
+- [x] Figure out how non-es code can use this library (`extend` function)

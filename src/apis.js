@@ -120,4 +120,12 @@ export class JsonApi {
       return this.new(value);
     }
   }
+
+  static extend({ HOST, ...proto }) {
+    const cls = class extends this {
+      static HOST = HOST;
+    };
+    Object.assign(cls.prototype, proto);
+    return cls;
+  }
 }

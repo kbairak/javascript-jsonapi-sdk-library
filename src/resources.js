@@ -672,6 +672,16 @@ export class Resource {
   asRelationship() {
     return { data: this.asResourceIdentifier() };
   }
+
+  static extend({ name, TYPE, ...proto }) {
+    const cls = class extends this {
+      static name = name;
+
+      static TYPE = TYPE;
+    };
+    Object.assign(cls.prototype, proto);
+    return cls;
+  }
 }
 
 for (const listMethod of [ 'filter', 'page', 'include', 'sort', 'fields' ]) {
