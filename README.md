@@ -998,3 +998,4 @@ await familyApi.Child.bulkDelete(allChildren);
 - [x] Figure out how exported library works in node vs browser vs webpack vs
       minified bundle (CRA doesn't import source maps from dependencies yet)
 - [x] Figure out how non-es code can use this library (`extend` function)
+- [ ] Add more comments
