@@ -168,7 +168,7 @@ export const transifexApi = TransifexApi();
 ```javascript
 // app.js (uses the global API connection instance)
 
-import { transifexApi } from './transifexApi';
+import { transifexApi } from '@transifex/api';
 
 transifexApi.setup({ auth: 'MYTOKEN' });
 const organization = await transifexApi.Organization.get("1");
@@ -177,7 +177,7 @@ const organization = await transifexApi.Organization.get("1");
 ```javascript
 // app.js (uses multiple custom API connection instances)
 
-import { TransifexApi } from './transifexApi';
+import { TransifexApi } from '@transifex/api';
 
 const api1 = new TransifexApi({ auth: 'APITOKEN1' });
 const api2 = new TransifexApi({ auth: 'APITOKEN2' });
@@ -774,7 +774,7 @@ const child = await familyApi.Child.create({
 });
 const child = await familyApi.Child.create({
     attributes: { name: 'Hercules' },
-    relationships: { parent: new familyApi.Parent(id='1') },
+    relationships: { parent: new familyApi.Parent({ id: '1' }) },
 });
 const child = familyApi.Child.create({
     attributes: { name: 'Hercules' },

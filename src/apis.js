@@ -6,6 +6,68 @@ import { JsonApiException } from './errors';
 import { Resource } from './resources';
 
 export class JsonApi {
+  /*  {json:api} connection **type** class. You need to subclass this to
+    * establish communication with a compatible server. Then, **before**
+    * creating a connection **instance**, you need to register `Resource`
+    * subclasses using the `.register()` static method:
+    *
+    *   class FamilyApi extends JsonApi {
+    *     static HOST = 'https://api.families.com';
+    *   }
+    *
+    *   class Parent extends Resource {...}
+    *
+    *   FamilyApi.register(Parent);
+    *
+    *   const familyApi = new FamilyApi({ auth: 'MYTOKEN' });
+    *
+    * After this, you can access the `Resouce` subclass and its methods on the
+    * connection instance directly. You can use either the `Resource`
+    * subclass's name or its TYPE static field:
+    *
+    *   const parent = await familyApi.Parent.get('1');
+    *   const parent = await familyApi.parents.get('1');
+    *
+    * The constructor accepts the 'auth' and 'host' properties. You can
+    * override the host in case you want to connect to a sandbox server. The
+    * 'auth' property is either a string which will be sent as a
+    * "Authorization: Bearer ${auth}" header. Otherwise, if it's a callable,
+    * its return value will be merged with the headers that will be sent to the
+    * server:
+    *
+    *   const familyApi = new FamilyApi({ auth: 'MYTOKEN' });
+    *   // equivalent to
+    *   const familyApi = new FamilyApi({
+    *     auth: () => { return { Authorization: 'Bearer MYTOKEN' } }',
+    *   });
+    *
+    * After initialization, you can modify the 'host' and 'auth' properties
+    * using `.setup()`. In fact, the constructor and `.setup()` have been
+    * written in such a way that the following two snippets are equivalent:
+    *
+    *   const props = ...;
+    *   const familyApi = new FamilyApi(props);
+    *
+    *   // equivalent to
+    *
+    *   const props = ...;
+    *   const familyApi = new FamilyApi();
+    *   familyApi.setup(props);
+    *
+    * This way, yu can either expose the `JsonApi` subclass and let users
+    * instanciate it or export a single global instance and expect users to set
+    * it up, or both:
+    *
+    *   // familyApi.js
+    *   export class FamilyApi extends JsonApi {...}
+    *   export const familyApi = new FamilyApi();
+    *
+    *   // myapp.js
+    *   import { familyApi, FamilyApi } from './familyApi.js';
+    *   familyApi.setup({ auth: 'user1' });
+    *   const customApi1 = new FamilyApi({ auth: 'user2' });
+    *   const customApi2 = new FamilyApi({ auth: 'user2' }); */
+
   constructor(props = {}) {
     this.host = this.constructor.HOST;
     this.auth = null;
@@ -31,11 +93,6 @@ export class JsonApi {
   }
 
   static register(parentCls) {
-    /*  Register a API resource type with this API connection *type* (since
-      * this is a static method). When a new API connection *instance* is
-      * created, it will use this to build its own registry in order to
-      * identify API types with the relevant API resource classes.
-      */
     function get() {
       const jsonApiInstance = this;
       let childCls = jsonApiInstance.registry[parentCls.TYPE];
@@ -56,6 +113,14 @@ export class JsonApi {
                   headers = {},
                   maxRedirects = 0,
                   ...props }) {
+    /*  Perform an HTTP request to the server. Most of the parameters will be
+      * filled in with sensible defaults for {json:api} interactons. The rest
+      * will be forwarded to `axios.request()`. In case of error, an attempt
+      * will be made to wrap the error in an error classes that make sense for
+      * {json:api} responses. If this fails (because perhaps the error
+      * originated in the load balancer sitting in front of the server), the
+      * axios error will be thrown. */
+
     if (url[0] === '/') {
       url = this.host + url;
     }
@@ -122,6 +187,21 @@ export class JsonApi {
   }
 
   static extend({ HOST, ...proto }) {
+    /*  If you are using an environment that doesn't support classes, like an
+      * old browser, you can use this static method to create a subclass for
+      * the connection type:
+      *
+      *   var FamilyApi = JsonApi.extend({
+      *     HOST: 'https://api.families.com',
+      *   });
+      *
+      *   // equivalent to
+      *
+      *   class FamilyApi extends JsonApi {
+      *     static HOST = 'https://api.families.com';
+      *   }
+      * */
+
     const cls = class extends this {
       static HOST = HOST;
     };
